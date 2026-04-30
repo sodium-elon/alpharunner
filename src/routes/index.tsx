@@ -15,10 +15,6 @@ const getDashboardData = createServerFn({ method: 'GET' }).handler(async () => {
           shoe: true,
         },
       },
-      shoes: {
-        orderBy: [desc(shoes.totalKm)],
-        limit: 5,
-      },
     },
   })
 
@@ -41,6 +37,23 @@ const getDashboardData = createServerFn({ method: 'GET' }).handler(async () => {
   const [totalDistanceRow] = await db
     .select({ total: sql<string>`coalesce(sum(${runs.distanceKm}), 0)::text` })
     .from(runs)
+
+  const topShoesRows = await db
+    .select({
+      id: shoes.id,
+      brand: shoes.brand,
+      model: shoes.model,
+      variant: shoes.variant,
+      role: shoes.role,
+      status: shoes.status,
+      computedKm: sql<string>`coalesce(sum(${runs.distanceKm}), 0)::text`,
+      runCount: sql<number>`count(${runs.id})::int`,
+    })
+    .from(shoes)
+    .leftJoin(runs, sql`${runs.shoeId} = ${shoes.id}`)
+    .groupBy(shoes.id, shoes.brand, shoes.model, shoes.variant, shoes.role, shoes.status)
+    .orderBy(desc(sql`coalesce(sum(${runs.distanceKm}), 0)`))
+    .limit(5)
 
   const latestRunIds = user?.runs.map((run) => run.id) ?? []
   const notesByRunId = latestRunIds.length
@@ -88,16 +101,16 @@ const getDashboardData = createServerFn({ method: 'GET' }).handler(async () => {
             }
           : null,
       })) ?? [],
-    topShoes:
-      user?.shoes.map((shoe) => ({
-        id: shoe.id,
-        brand: shoe.brand,
-        model: shoe.model,
-        variant: shoe.variant,
-        role: shoe.role,
-        totalKm: Number(shoe.totalKm),
-        status: shoe.status,
-      })) ?? [],
+    topShoes: topShoesRows.map((shoe) => ({
+      id: shoe.id,
+      brand: shoe.brand,
+      model: shoe.model,
+      variant: shoe.variant,
+      role: shoe.role,
+      totalKm: Number(shoe.computedKm),
+      runCount: shoe.runCount,
+      status: shoe.status,
+    })),
   }
 })
 
@@ -215,7 +228,7 @@ function Home() {
                       {shoe.brand} {shoe.model}{shoe.variant ? ` ${shoe.variant}` : ''}
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {shoe.role} • {shoe.status}
+                      {shoe.role} • {shoe.runCount} {shoe.runCount === 1 ? 'run' : 'runs'} • {shoe.status}
                     </div>
                   </div>
                   <div className="text-sm font-semibold whitespace-nowrap">{shoe.totalKm.toFixed(2)} km</div>
