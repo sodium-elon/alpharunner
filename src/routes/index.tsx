@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { Link, createFileRoute } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { desc, sql } from 'drizzle-orm'
 import { coachingNotes, getDb, hrZoneDistributions, runs, shoes } from '~/db'
@@ -152,7 +152,7 @@ function Home() {
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard label="Runs" value={String(data.summary.runCount)} helper="Logged activities" />
+        <StatCard to="/runs" label="Runs" value={String(data.summary.runCount)} helper="Logged activities" />
         <StatCard label="Distance" value={`${data.summary.totalDistanceKm.toFixed(2)} km`} helper="Total across all runs" />
         <StatCard label="Shoes" value={String(data.summary.shoeCount)} helper="Tracked in rotation" />
         <StatCard label="Coaching Notes" value={String(data.summary.coachingCount)} helper="Structured analysis rows" />
@@ -240,9 +240,13 @@ function Home() {
                 {data.shoeAverages.map((shoe) => (
                   <tr key={shoe.id} className="border-b last:border-0 align-top">
                     <td className="py-3 pr-4">
-                      <div className="font-medium">
+                      <Link
+                        to="/shoes/$shoeId"
+                        params={{ shoeId: shoe.id }}
+                        className="font-medium text-blue-600 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+                      >
                         {shoe.brand} {shoe.model}{shoe.variant ? ` ${shoe.variant}` : ''}
-                      </div>
+                      </Link>
                       <div className="text-xs text-gray-500 dark:text-gray-400">
                         {shoe.role} • {shoe.status}
                       </div>
@@ -263,12 +267,35 @@ function Home() {
   )
 }
 
-function StatCard({ label, value, helper }: { label: string; value: string; helper: string }) {
-  return (
-    <div className="rounded-lg border bg-white/60 dark:bg-gray-900/60 p-5 shadow-sm">
+function StatCard({
+  label,
+  value,
+  helper,
+  to,
+}: {
+  label: string
+  value: string
+  helper: string
+  to?: '/runs'
+}) {
+  const content = (
+    <>
       <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400">{label}</h2>
       <div className="mt-2 text-2xl font-bold">{value}</div>
       <p className="mt-2 text-xs text-gray-600 dark:text-gray-400">{helper}</p>
-    </div>
+    </>
   )
+
+  if (to) {
+    return (
+      <Link
+        to={to}
+        className="block rounded-lg border bg-white/60 p-5 shadow-sm transition hover:border-blue-300 hover:bg-white/80 dark:bg-gray-900/60 dark:hover:border-blue-700 dark:hover:bg-gray-900/80"
+      >
+        {content}
+      </Link>
+    )
+  }
+
+  return <div className="rounded-lg border bg-white/60 dark:bg-gray-900/60 p-5 shadow-sm">{content}</div>
 }
