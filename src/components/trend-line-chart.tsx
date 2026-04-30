@@ -23,6 +23,17 @@ export function formatTrendShortDate(date: string) {
   })
 }
 
+function dateToDayValue(date: string) {
+  return new Date(`${date}T00:00:00Z`).getTime()
+}
+
+function formatTrendDayValue(dayValue: number) {
+  return new Date(dayValue).toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+  })
+}
+
 export function aggregateTrendPoints(points: TrendChartPoint[]): TrendChartPoint[] {
   const byDate = new Map<string, TrendChartPoint[]>()
 
@@ -89,6 +100,10 @@ function formatPace(seconds: number) {
 
 export function TrendLineChart({ data }: { data: TrendChartPoint[] }) {
   const [chartLib, setChartLib] = React.useState<null | typeof import('recharts')>(null)
+  const chartData = React.useMemo(
+    () => data.map((point) => ({ ...point, dayValue: dateToDayValue(point.date) })),
+    [data],
+  )
 
   React.useEffect(() => {
     let cancelled = false
@@ -115,9 +130,19 @@ export function TrendLineChart({ data }: { data: TrendChartPoint[] }) {
   return (
     <ChartContainer config={chartConfig} className="h-full w-full min-h-[360px]">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart accessibilityLayer data={data} margin={{ top: 12, right: 12, left: 0, bottom: 12 }}>
+        <LineChart accessibilityLayer data={chartData} margin={{ top: 12, right: 12, left: 0, bottom: 12 }}>
           <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-800" />
-          <XAxis dataKey="displayDate" tickLine={false} tickMargin={10} axisLine={false} minTickGap={24} />
+          <XAxis
+            type="number"
+            dataKey="dayValue"
+            scale="time"
+            domain={["dataMin", "dataMax"]}
+            tickFormatter={(value) => formatTrendDayValue(Number(value))}
+            tickLine={false}
+            tickMargin={10}
+            axisLine={false}
+            minTickGap={24}
+          />
           <YAxis
             yAxisId="cadence"
             tickLine={false}
