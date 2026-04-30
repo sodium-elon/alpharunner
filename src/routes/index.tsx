@@ -48,6 +48,9 @@ const getDashboardData = createServerFn({ method: 'GET' }).handler(async () => {
       status: shoes.status,
       computedKm: sql<string>`coalesce(sum(${runs.distanceKm}), 0)::text`,
       runCount: sql<number>`count(${runs.id})::int`,
+      avgCadence: sql<string>`avg(${runs.avgCadence})::text`,
+      avgHr: sql<string>`avg(${runs.avgHr})::text`,
+      avgPaceSecPerKm: sql<string>`avg(${runs.avgPaceSecPerKm})::text`,
     })
     .from(shoes)
     .leftJoin(runs, sql`${runs.shoeId} = ${shoes.id}`)
@@ -109,6 +112,9 @@ const getDashboardData = createServerFn({ method: 'GET' }).handler(async () => {
       role: shoe.role,
       totalKm: Number(shoe.computedKm),
       runCount: shoe.runCount,
+      avgCadence: shoe.avgCadence == null ? null : Number(shoe.avgCadence),
+      avgHr: shoe.avgHr == null ? null : Number(shoe.avgHr),
+      avgPaceSecPerKm: shoe.avgPaceSecPerKm == null ? null : Math.round(Number(shoe.avgPaceSecPerKm)),
       status: shoe.status,
     })),
   }
@@ -215,26 +221,42 @@ function Home() {
         </div>
 
         <div className="rounded-lg border bg-white/60 dark:bg-gray-900/60 p-5 shadow-sm">
-          <h2 className="text-lg font-semibold">Top shoe mileage</h2>
+          <h2 className="text-lg font-semibold">Shoe performance averages</h2>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Highest-distance shoes in the current rotation.
+            Mileage and average run metrics across all runs logged in each shoe.
           </p>
-          <div className="mt-4 space-y-3">
-            {data.topShoes.map((shoe) => (
-              <div key={shoe.id} className="rounded-md border p-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="font-medium">
-                      {shoe.brand} {shoe.model}{shoe.variant ? ` ${shoe.variant}` : ''}
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {shoe.role} • {shoe.runCount} {shoe.runCount === 1 ? 'run' : 'runs'} • {shoe.status}
-                    </div>
-                  </div>
-                  <div className="text-sm font-semibold whitespace-nowrap">{shoe.totalKm.toFixed(2)} km</div>
-                </div>
-              </div>
-            ))}
+          <div className="mt-4 overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-gray-500 dark:text-gray-400">
+                  <th className="py-2 pr-4 font-medium">Shoe</th>
+                  <th className="py-2 pr-4 font-medium">Distance</th>
+                  <th className="py-2 pr-4 font-medium">Runs</th>
+                  <th className="py-2 pr-4 font-medium">Cadence</th>
+                  <th className="py-2 pr-4 font-medium">Avg HR</th>
+                  <th className="py-2 pr-4 font-medium">Avg Pace</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.topShoes.map((shoe) => (
+                  <tr key={shoe.id} className="border-b last:border-0 align-top">
+                    <td className="py-3 pr-4">
+                      <div className="font-medium">
+                        {shoe.brand} {shoe.model}{shoe.variant ? ` ${shoe.variant}` : ''}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {shoe.role} • {shoe.status}
+                      </div>
+                    </td>
+                    <td className="py-3 pr-4 whitespace-nowrap">{shoe.totalKm.toFixed(2)} km</td>
+                    <td className="py-3 pr-4 whitespace-nowrap">{shoe.runCount}</td>
+                    <td className="py-3 pr-4 whitespace-nowrap">{shoe.avgCadence == null ? '—' : Math.round(shoe.avgCadence)}</td>
+                    <td className="py-3 pr-4 whitespace-nowrap">{shoe.avgHr == null ? '—' : Math.round(shoe.avgHr)}</td>
+                    <td className="py-3 pr-4 whitespace-nowrap">{shoe.avgPaceSecPerKm == null ? '—' : formatPace(shoe.avgPaceSecPerKm)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
