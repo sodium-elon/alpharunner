@@ -1,0 +1,8 @@
+{
+  "name": "AlphaRunner",
+  "short_name": "AlphaRunner",
+  "icons": [],
+  "theme_color": "#ffffff",
+  "background_color": "#ffffff",
+  "display": "standalone"
+}
