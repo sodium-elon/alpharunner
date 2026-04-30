@@ -32,6 +32,7 @@ const getShoeDetail = createServerFn({ method: 'GET' }).handler(async ({ data }:
       distanceKm: sql<string>`${runs.distanceKm}::text`,
       avgCadence: runs.avgCadence,
       avgPaceSecPerKm: runs.avgPaceSecPerKm,
+      avgStrideLengthM: sql<string>`${runs.avgStrideLengthM}::text`,
       avgHr: runs.avgHr,
       workoutIntent: runs.workoutIntent,
     })
@@ -46,6 +47,7 @@ const getShoeDetail = createServerFn({ method: 'GET' }).handler(async ({ data }:
     cadence: run.avgCadence,
     pace: run.avgPaceSecPerKm,
     speedKmh: 3600 / run.avgPaceSecPerKm,
+    strideLengthM: run.avgStrideLengthM == null ? null : Number(run.avgStrideLengthM),
     distanceKm: Number(run.distanceKm),
     avgHr: run.avgHr,
     workoutIntent: run.workoutIntent,
@@ -97,14 +99,14 @@ function ShoeDetailPage() {
       <section className="grid gap-4 sm:grid-cols-3">
         <StatCard label="Runs logged" value={String(data.chartData.length)} helper="Sessions using this shoe" />
         <StatCard label="Total km" value={`${data.shoe.totalKm.toFixed(2)} km`} helper="Stored shoe lifetime distance" />
-        <StatCard label="Trend view" value="Cadence + speed" helper="Average cadence and speed over time" />
+        <StatCard label="Trend view" value="Cadence + speed" helper="Stride length now included too" />
       </section>
 
       <section className="rounded-lg border bg-white/60 dark:bg-gray-900/60 p-5 shadow-sm">
         <div>
           <h2 className="text-lg font-semibold">Average cadence and speed over time</h2>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Dual-axis line chart for each run logged in {shoeName}. Hover points to see pace too.
+            Multi-line trend chart for each run logged in {shoeName}. Hover points to see pace too.
           </p>
         </div>
 
@@ -131,6 +133,7 @@ function ShoeDetailPage() {
                 <th className="py-2 pr-4 font-medium">Date</th>
                 <th className="py-2 pr-4 font-medium">Distance</th>
                 <th className="py-2 pr-4 font-medium">Cadence</th>
+                <th className="py-2 pr-4 font-medium">Stride</th>
                 <th className="py-2 pr-4 font-medium">Avg Pace</th>
                 <th className="py-2 pr-4 font-medium">Avg HR</th>
                 <th className="py-2 pr-4 font-medium">Intent</th>
@@ -142,6 +145,7 @@ function ShoeDetailPage() {
                   <td className="py-3 pr-4 whitespace-nowrap">{run.date}</td>
                   <td className="py-3 pr-4 whitespace-nowrap">{run.distanceKm.toFixed(2)} km</td>
                   <td className="py-3 pr-4 whitespace-nowrap">{run.cadence ?? '—'}</td>
+                  <td className="py-3 pr-4 whitespace-nowrap">{run.strideLengthM == null ? '—' : `${run.strideLengthM.toFixed(2)} m`}</td>
                   <td className="py-3 pr-4 whitespace-nowrap">{formatTrendPace(run.pace)}</td>
                   <td className="py-3 pr-4 whitespace-nowrap">{run.avgHr ?? '—'}</td>
                   <td className="py-3 pr-4">{run.workoutIntent}</td>

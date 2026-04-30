@@ -8,6 +8,7 @@ export type TrendChartPoint = {
   cadence: number | null
   pace: number
   speedKmh: number
+  strideLengthM: number | null
   distanceKm: number
   avgHr: number | null
   workoutIntent: string
@@ -38,6 +39,7 @@ export function aggregateTrendPoints(points: TrendChartPoint[]): TrendChartPoint
     const paceAverage = dayPoints.reduce((sum, point) => sum + point.pace, 0) / dayPoints.length
     const cadencePoints = dayPoints.filter((point) => point.cadence != null)
     const hrPoints = dayPoints.filter((point) => point.avgHr != null)
+    const stridePoints = dayPoints.filter((point) => point.strideLengthM != null)
     const shoeNames = Array.from(new Set(dayPoints.map((point) => point.shoeName).filter(Boolean))) as string[]
     const workoutIntents = Array.from(new Set(dayPoints.map((point) => point.workoutIntent)))
 
@@ -50,6 +52,9 @@ export function aggregateTrendPoints(points: TrendChartPoint[]): TrendChartPoint
         : null,
       pace: paceAverage,
       speedKmh: 3600 / paceAverage,
+      strideLengthM: stridePoints.length
+        ? stridePoints.reduce((sum, point) => sum + (point.strideLengthM ?? 0), 0) / stridePoints.length
+        : null,
       distanceKm: dayPoints.reduce((sum, point) => sum + point.distanceKm, 0),
       avgHr: hrPoints.length
         ? hrPoints.reduce((sum, point) => sum + (point.avgHr ?? 0), 0) / hrPoints.length
@@ -69,6 +74,10 @@ const chartConfig = {
   speedKmh: {
     label: 'Avg speed',
     color: 'var(--chart-2, #16a34a)',
+  },
+  strideLengthM: {
+    label: 'Avg stride length',
+    color: 'var(--chart-3, #f59e0b)',
   },
 } satisfies ChartConfig
 
@@ -124,6 +133,7 @@ export function TrendLineChart({ data }: { data: TrendChartPoint[] }) {
             width={56}
             tickFormatter={(value) => `${Number(value).toFixed(1)}`}
           />
+          <YAxis yAxisId="strideLengthM" hide domain={["auto", "auto"]} />
           <Tooltip
             contentStyle={{
               borderRadius: '0.75rem',
@@ -133,6 +143,7 @@ export function TrendLineChart({ data }: { data: TrendChartPoint[] }) {
             }}
             formatter={(value: number | string, name: string) => {
               if (name === chartConfig.speedKmh.label) return [`${Number(value).toFixed(2)} km/h`, name]
+              if (name === chartConfig.strideLengthM.label) return [`${Number(value).toFixed(2)} m`, name]
               return [value, name]
             }}
             labelFormatter={(_, payload) => {
@@ -164,6 +175,18 @@ export function TrendLineChart({ data }: { data: TrendChartPoint[] }) {
             strokeWidth={2.5}
             dot={{ r: 4, fill: 'var(--color-speedKmh)' }}
             activeDot={{ r: 6 }}
+          />
+          <Line
+            yAxisId="strideLengthM"
+            type="monotone"
+            dataKey="strideLengthM"
+            name={chartConfig.strideLengthM.label}
+            stroke="var(--color-strideLengthM)"
+            strokeWidth={2.5}
+            strokeDasharray="6 4"
+            dot={{ r: 4, fill: 'var(--color-strideLengthM)' }}
+            activeDot={{ r: 6 }}
+            connectNulls
           />
         </LineChart>
       </ResponsiveContainer>

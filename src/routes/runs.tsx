@@ -21,6 +21,7 @@ const getRunsOverview = createServerFn({ method: 'GET' }).handler(async () => {
     cadence: run.avgCadence,
     pace: run.avgPaceSecPerKm,
     speedKmh: 3600 / run.avgPaceSecPerKm,
+    strideLengthM: run.avgStrideLengthM == null ? null : Number(run.avgStrideLengthM),
     distanceKm: Number(run.distanceKm),
     avgHr: run.avgHr,
     workoutIntent: run.workoutIntent,
@@ -33,6 +34,7 @@ const getRunsOverview = createServerFn({ method: 'GET' }).handler(async () => {
       totalDistanceKm: sql<string>`coalesce(sum(${runs.distanceKm}), 0)::text`,
       avgCadence: sql<string>`avg(${runs.avgCadence})::text`,
       avgPaceSecPerKm: sql<string>`avg(${runs.avgPaceSecPerKm})::text`,
+      avgStrideLengthM: sql<string>`avg(${runs.avgStrideLengthM})::text`,
     })
     .from(runs)
 
@@ -44,6 +46,7 @@ const getRunsOverview = createServerFn({ method: 'GET' }).handler(async () => {
       totalDistanceKm: Number(summary?.totalDistanceKm ?? '0'),
       avgCadence: summary?.avgCadence == null ? null : Math.round(Number(summary.avgCadence)),
       avgPaceSecPerKm: summary?.avgPaceSecPerKm == null ? null : Math.round(Number(summary.avgPaceSecPerKm)),
+      avgStrideLengthM: summary?.avgStrideLengthM == null ? null : Number(summary.avgStrideLengthM),
     },
   }
 })
@@ -80,7 +83,7 @@ function RunsOverviewPage() {
         <StatCard
           label="Overall averages"
           value={avgSpeedKmh == null ? '—' : `${avgSpeedKmh.toFixed(2)} km/h / ${data.summary.avgCadence ?? '—'} spm`}
-          helper="Average speed and cadence"
+          helper={data.summary.avgStrideLengthM == null ? 'Average speed and cadence' : `Stride ${data.summary.avgStrideLengthM.toFixed(2)} m`}
         />
       </section>
 
@@ -88,7 +91,7 @@ function RunsOverviewPage() {
         <div>
           <h2 className="text-lg font-semibold">Average cadence and speed over time</h2>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Hover any point to see the run date, workout intent, distance, shoe used, and pace.
+            Hover any point to see the run date, workout intent, distance, shoe used, and pace. Stride length is shown as a third line.
           </p>
         </div>
 
@@ -116,6 +119,7 @@ function RunsOverviewPage() {
                 <th className="py-2 pr-4 font-medium">Shoe</th>
                 <th className="py-2 pr-4 font-medium">Distance</th>
                 <th className="py-2 pr-4 font-medium">Cadence</th>
+                <th className="py-2 pr-4 font-medium">Stride</th>
                 <th className="py-2 pr-4 font-medium">Avg Pace</th>
                 <th className="py-2 pr-4 font-medium">Avg HR</th>
                 <th className="py-2 pr-4 font-medium">Intent</th>
@@ -128,6 +132,7 @@ function RunsOverviewPage() {
                   <td className="py-3 pr-4">{run.shoeName ?? 'Unassigned'}</td>
                   <td className="py-3 pr-4 whitespace-nowrap">{run.distanceKm.toFixed(2)} km</td>
                   <td className="py-3 pr-4 whitespace-nowrap">{run.cadence ?? '—'}</td>
+                  <td className="py-3 pr-4 whitespace-nowrap">{run.strideLengthM == null ? '—' : `${run.strideLengthM.toFixed(2)} m`}</td>
                   <td className="py-3 pr-4 whitespace-nowrap">{formatTrendPace(run.pace)}</td>
                   <td className="py-3 pr-4 whitespace-nowrap">{run.avgHr ?? '—'}</td>
                   <td className="py-3 pr-4">{run.workoutIntent}</td>
