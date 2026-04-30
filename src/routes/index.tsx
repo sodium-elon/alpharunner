@@ -38,7 +38,7 @@ const getDashboardData = createServerFn({ method: 'GET' }).handler(async () => {
     .select({ total: sql<string>`coalesce(sum(${runs.distanceKm}), 0)::text` })
     .from(runs)
 
-  const topShoesRows = await db
+  const shoeAveragesRows = await db
     .select({
       id: shoes.id,
       brand: shoes.brand,
@@ -56,7 +56,6 @@ const getDashboardData = createServerFn({ method: 'GET' }).handler(async () => {
     .leftJoin(runs, sql`${runs.shoeId} = ${shoes.id}`)
     .groupBy(shoes.id, shoes.brand, shoes.model, shoes.variant, shoes.role, shoes.status)
     .orderBy(desc(sql`coalesce(sum(${runs.distanceKm}), 0)`))
-    .limit(5)
 
   const latestRunIds = user?.runs.map((run) => run.id) ?? []
   const notesByRunId = latestRunIds.length
@@ -104,7 +103,7 @@ const getDashboardData = createServerFn({ method: 'GET' }).handler(async () => {
             }
           : null,
       })) ?? [],
-    topShoes: topShoesRows.map((shoe) => ({
+    shoeAverages: shoeAveragesRows.map((shoe) => ({
       id: shoe.id,
       brand: shoe.brand,
       model: shoe.model,
@@ -238,7 +237,7 @@ function Home() {
                 </tr>
               </thead>
               <tbody>
-                {data.topShoes.map((shoe) => (
+                {data.shoeAverages.map((shoe) => (
                   <tr key={shoe.id} className="border-b last:border-0 align-top">
                     <td className="py-3 pr-4">
                       <div className="font-medium">
