@@ -7,10 +7,58 @@ export type TrendChartPoint = {
   displayDate: string
   cadence: number | null
   pace: number
+  speedKmh: number
   distanceKm: number
   avgHr: number | null
   workoutIntent: string
   shoeName?: string | null
+  runCount?: number
+}
+
+export function formatTrendShortDate(date: string) {
+  return new Date(`${date}T00:00:00`).toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+  })
+}
+
+export function aggregateTrendPoints(points: TrendChartPoint[]): TrendChartPoint[] {
+  const byDate = new Map<string, TrendChartPoint[]>()
+
+  for (const point of points) {
+    const existing = byDate.get(point.date)
+    if (existing) {
+      existing.push(point)
+    } else {
+      byDate.set(point.date, [point])
+    }
+  }
+
+  return Array.from(byDate.entries()).map(([date, dayPoints]) => {
+    const paceAverage = dayPoints.reduce((sum, point) => sum + point.pace, 0) / dayPoints.length
+    const cadencePoints = dayPoints.filter((point) => point.cadence != null)
+    const hrPoints = dayPoints.filter((point) => point.avgHr != null)
+    const shoeNames = Array.from(new Set(dayPoints.map((point) => point.shoeName).filter(Boolean))) as string[]
+    const workoutIntents = Array.from(new Set(dayPoints.map((point) => point.workoutIntent)))
+
+    return {
+      id: dayPoints.map((point) => point.id).join('__'),
+      date,
+      displayDate: formatTrendShortDate(date),
+      cadence: cadencePoints.length
+        ? cadencePoints.reduce((sum, point) => sum + (point.cadence ?? 0), 0) / cadencePoints.length
+        : null,
+      pace: paceAverage,
+      speedKmh: 3600 / paceAverage,
+      distanceKm: dayPoints.reduce((sum, point) => sum + point.distanceKm, 0),
+      avgHr: hrPoints.length
+        ? hrPoints.reduce((sum, point) => sum + (point.avgHr ?? 0), 0) / hrPoints.length
+        : null,
+      workoutIntent: workoutIntents.join(', '),
+      shoeName: shoeNames.length ? shoeNames.join(', ') : null,
+      runCount: dayPoints.length,
+    }
+  })
 }
 
 const chartConfig = {
@@ -18,8 +66,8 @@ const chartConfig = {
     label: 'Avg cadence',
     color: 'var(--chart-1, #2563eb)',
   },
-  pace: {
-    label: 'Avg pace',
+  speedKmh: {
+    label: 'Avg speed',
     color: 'var(--chart-2, #16a34a)',
   },
 } satisfies ChartConfig
@@ -69,12 +117,12 @@ export function TrendLineChart({ data }: { data: TrendChartPoint[] }) {
             tickFormatter={(value) => `${value}`}
           />
           <YAxis
-            yAxisId="pace"
+            yAxisId="speedKmh"
             orientation="right"
             tickLine={false}
             axisLine={false}
             width={56}
-            tickFormatter={(value) => formatPace(value)}
+            tickFormatter={(value) => `${Number(value).toFixed(1)}`}
           />
           <Tooltip
             contentStyle={{
@@ -84,14 +132,15 @@ export function TrendLineChart({ data }: { data: TrendChartPoint[] }) {
               boxShadow: '0 8px 24px rgba(0, 0, 0, 0.08)',
             }}
             formatter={(value: number | string, name: string) => {
-              if (name === chartConfig.pace.label) return [formatPace(Number(value)), name]
+              if (name === chartConfig.speedKmh.label) return [`${Number(value).toFixed(2)} km/h`, name]
               return [value, name]
             }}
             labelFormatter={(_, payload) => {
               const point = payload?.[0]?.payload as TrendChartPoint | undefined
               if (!point) return ''
               const shoePart = point.shoeName ? ` • ${point.shoeName}` : ''
-              return `${point.date} • ${point.distanceKm.toFixed(2)} km • ${point.workoutIntent}${shoePart}`
+              const runCountPart = point.runCount && point.runCount > 1 ? ` • averaged from ${point.runCount} runs` : ''
+              return `${point.date} • ${point.distanceKm.toFixed(2)} km • ${point.workoutIntent}${shoePart} • ${formatPace(point.pace)}${runCountPart}`
             }}
           />
           <Legend verticalAlign="top" height={36} />
@@ -107,13 +156,13 @@ export function TrendLineChart({ data }: { data: TrendChartPoint[] }) {
             connectNulls
           />
           <Line
-            yAxisId="pace"
+            yAxisId="speedKmh"
             type="monotone"
-            dataKey="pace"
-            name={chartConfig.pace.label}
-            stroke="var(--color-pace)"
+            dataKey="speedKmh"
+            name={chartConfig.speedKmh.label}
+            stroke="var(--color-speedKmh)"
             strokeWidth={2.5}
-            dot={{ r: 4, fill: 'var(--color-pace)' }}
+            dot={{ r: 4, fill: 'var(--color-speedKmh)' }}
             activeDot={{ r: 6 }}
           />
         </LineChart>

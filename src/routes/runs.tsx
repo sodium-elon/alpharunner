@@ -1,7 +1,7 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { asc, sql } from 'drizzle-orm'
-import { TrendLineChart, formatTrendPace, type TrendChartPoint } from '~/components/trend-line-chart'
+import { TrendLineChart, aggregateTrendPoints, formatTrendPace, formatTrendShortDate, type TrendChartPoint } from '~/components/trend-line-chart'
 import { getDb, runs } from '~/db'
 
 const getRunsOverview = createServerFn({ method: 'GET' }).handler(async () => {
@@ -17,9 +17,10 @@ const getRunsOverview = createServerFn({ method: 'GET' }).handler(async () => {
   const chartData: TrendChartPoint[] = runRows.map((run) => ({
     id: run.id,
     date: run.date,
-    displayDate: formatShortDate(run.date),
+    displayDate: formatTrendShortDate(run.date),
     cadence: run.avgCadence,
     pace: run.avgPaceSecPerKm,
+    speedKmh: 3600 / run.avgPaceSecPerKm,
     distanceKm: Number(run.distanceKm),
     avgHr: run.avgHr,
     workoutIntent: run.workoutIntent,
@@ -37,6 +38,7 @@ const getRunsOverview = createServerFn({ method: 'GET' }).handler(async () => {
 
   return {
     chartData,
+    aggregatedChartData: aggregateTrendPoints(chartData),
     summary: {
       runCount: summary?.runCount ?? 0,
       totalDistanceKm: Number(summary?.totalDistanceKm ?? '0'),
@@ -51,15 +53,9 @@ export const Route = createFileRoute('/runs')({
   component: RunsOverviewPage,
 })
 
-function formatShortDate(date: string) {
-  return new Date(`${date}T00:00:00`).toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-  })
-}
-
 function RunsOverviewPage() {
   const data = Route.useLoaderData()
+  const avgSpeedKmh = data.summary.avgPaceSecPerKm == null ? null : 3600 / data.summary.avgPaceSecPerKm
 
   return (
     <main className="p-6 space-y-8 max-w-6xl mx-auto">
@@ -73,7 +69,7 @@ function RunsOverviewPage() {
         <div>
           <h1 className="text-3xl font-bold">All runs</h1>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Average cadence and pace over time across every logged run, regardless of shoe.
+            Average cadence and speed over time across every logged run, regardless of shoe.
           </p>
         </div>
       </section>
@@ -83,16 +79,16 @@ function RunsOverviewPage() {
         <StatCard label="Total km" value={`${data.summary.totalDistanceKm.toFixed(2)} km`} helper="Distance across all runs" />
         <StatCard
           label="Overall averages"
-          value={data.summary.avgPaceSecPerKm == null ? '—' : `${formatTrendPace(data.summary.avgPaceSecPerKm)} / ${data.summary.avgCadence ?? '—'} spm`}
-          helper="Average pace and cadence"
+          value={avgSpeedKmh == null ? '—' : `${avgSpeedKmh.toFixed(2)} km/h / ${data.summary.avgCadence ?? '—'} spm`}
+          helper="Average speed and cadence"
         />
       </section>
 
       <section className="rounded-lg border bg-white/60 dark:bg-gray-900/60 p-5 shadow-sm">
         <div>
-          <h2 className="text-lg font-semibold">Average cadence and pace over time</h2>
+          <h2 className="text-lg font-semibold">Average cadence and speed over time</h2>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Hover any point to see the run date, workout intent, distance, and shoe used.
+            Hover any point to see the run date, workout intent, distance, shoe used, and pace.
           </p>
         </div>
 
@@ -102,7 +98,7 @@ function RunsOverviewPage() {
               No runs logged yet.
             </div>
           ) : (
-            <TrendLineChart data={data.chartData} />
+            <TrendLineChart data={data.aggregatedChartData} />
           )}
         </div>
       </section>

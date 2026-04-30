@@ -1,7 +1,7 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { asc, eq, sql } from 'drizzle-orm'
-import { TrendLineChart, formatTrendPace, type TrendChartPoint } from '~/components/trend-line-chart'
+import { TrendLineChart, aggregateTrendPoints, formatTrendPace, formatTrendShortDate, type TrendChartPoint } from '~/components/trend-line-chart'
 import { getDb, runs, shoes } from '~/db'
 
 const getShoeDetail = createServerFn({ method: 'GET' }).handler(async ({ data }: { data: { shoeId: string } }) => {
@@ -42,9 +42,10 @@ const getShoeDetail = createServerFn({ method: 'GET' }).handler(async ({ data }:
   const chartData: TrendChartPoint[] = runRows.map((run) => ({
     id: run.id,
     date: run.date,
-    displayDate: formatShortDate(run.date),
+    displayDate: formatTrendShortDate(run.date),
     cadence: run.avgCadence,
     pace: run.avgPaceSecPerKm,
+    speedKmh: 3600 / run.avgPaceSecPerKm,
     distanceKm: Number(run.distanceKm),
     avgHr: run.avgHr,
     workoutIntent: run.workoutIntent,
@@ -62,6 +63,7 @@ const getShoeDetail = createServerFn({ method: 'GET' }).handler(async ({ data }:
       totalKm: Number(shoe.totalKm),
     },
     chartData,
+    aggregatedChartData: aggregateTrendPoints(chartData),
   }
 })
 
@@ -69,13 +71,6 @@ export const Route = createFileRoute('/shoes/$shoeId')({
   loader: ({ params }) => getShoeDetail({ data: { shoeId: params.shoeId } }),
   component: ShoeDetailPage,
 })
-
-function formatShortDate(date: string) {
-  return new Date(`${date}T00:00:00`).toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-  })
-}
 
 function ShoeDetailPage() {
   const data = Route.useLoaderData()
@@ -102,14 +97,14 @@ function ShoeDetailPage() {
       <section className="grid gap-4 sm:grid-cols-3">
         <StatCard label="Runs logged" value={String(data.chartData.length)} helper="Sessions using this shoe" />
         <StatCard label="Total km" value={`${data.shoe.totalKm.toFixed(2)} km`} helper="Stored shoe lifetime distance" />
-        <StatCard label="Trend view" value="Cadence + pace" helper="Average cadence and pace over time" />
+        <StatCard label="Trend view" value="Cadence + speed" helper="Average cadence and speed over time" />
       </section>
 
       <section className="rounded-lg border bg-white/60 dark:bg-gray-900/60 p-5 shadow-sm">
         <div>
-          <h2 className="text-lg font-semibold">Average cadence and pace over time</h2>
+          <h2 className="text-lg font-semibold">Average cadence and speed over time</h2>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Dual-axis line chart for each run logged in {shoeName}.
+            Dual-axis line chart for each run logged in {shoeName}. Hover points to see pace too.
           </p>
         </div>
 
@@ -119,7 +114,7 @@ function ShoeDetailPage() {
               No runs logged for this shoe yet.
             </div>
           ) : (
-            <TrendLineChart data={data.chartData} />
+            <TrendLineChart data={data.aggregatedChartData} />
           )}
         </div>
       </section>
