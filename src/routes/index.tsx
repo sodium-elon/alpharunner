@@ -2,8 +2,13 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { desc, sql } from 'drizzle-orm'
 import { coachingNotes, getDb, hrZoneDistributions, runs, shoes } from '~/db'
+import { isMockMode, mockDashboardData } from '~/mocks/data'
 
 const getDashboardData = createServerFn({ method: 'GET' }).handler(async () => {
+  if (isMockMode()) {
+    return mockDashboardData
+  }
+
   const db = await getDb()
 
   const user = await db.query.users.findFirst({

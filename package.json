@@ -8,6 +8,7 @@
   "scripts": {
     "predev": "lsof -ti:3000 | xargs kill -9 2>/dev/null || true",
     "dev": "dotenv -e ../env-profiles/local.env -- vite dev --strictPort",
+    "dev:msw": "dotenv -e ../env-profiles/local.env -- sh -c 'MSW=true vite dev --strictPort'",
     "dev:prod": "dotenv -e ../env-profiles/prod.env -- vite dev --strictPort",
     "build": "vite build",
     "preview": "vite preview",
@@ -61,6 +62,7 @@
     "drizzle-kit": "^0.31.8",
     "eslint": "^9.39.2",
     "globals": "^17.0.0",
+    "msw": "^2.14.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.53.0",
