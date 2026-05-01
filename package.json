@@ -8,7 +8,7 @@
   "scripts": {
     "predev": "lsof -ti:3000 | xargs kill -9 2>/dev/null || true",
     "dev": "dotenv -e ../env-profiles/local.env -- vite dev --strictPort",
-    "dev:msw": "dotenv -e ../env-profiles/local.env -- MSW=true vite dev --strictPort",
+    "dev:msw": "dotenv -e ../env-profiles/local.env -- sh -c 'MSW=true vite dev --strictPort'",
     "dev:prod": "dotenv -e ../env-profiles/prod.env -- vite dev --strictPort",
     "build": "vite build",
     "preview": "vite preview",
