@@ -2,10 +2,10 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { desc, sql } from 'drizzle-orm'
 import { coachingNotes, getDb, hrZoneDistributions, runs, shoes } from '~/db'
-import { mockDashboardData } from '~/mocks/dashboard'
+import { isMockMode, mockDashboardData } from '~/mocks/data'
 
 const getDashboardData = createServerFn({ method: 'GET' }).handler(async () => {
-  if (process.env.MSW === 'true') {
+  if (isMockMode()) {
     return mockDashboardData
   }
 

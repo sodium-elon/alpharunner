@@ -3,8 +3,13 @@ import { createServerFn } from '@tanstack/react-start'
 import { asc, sql } from 'drizzle-orm'
 import { TrendLineChart, aggregateTrendPoints, formatTrendPace, formatTrendShortDate, type TrendChartPoint } from '~/components/trend-line-chart'
 import { getDb, runs } from '~/db'
+import { getMockRunsOverview, isMockMode } from '~/mocks/data'
 
 const getRunsOverview = createServerFn({ method: 'GET' }).handler(async () => {
+  if (isMockMode()) {
+    return getMockRunsOverview()
+  }
+
   const db = await getDb()
 
   const runRows = await db.query.runs.findMany({
