@@ -4,6 +4,9 @@ import {
   type RequestHandler,
 } from "@tanstack/react-start/server";
 import type { Register } from "@tanstack/react-router";
+import { initializeMockServer } from "./mocks/setup";
+
+initializeMockServer();
 
 const fetch = createStartHandler(defaultStreamHandler);
 

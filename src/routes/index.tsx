@@ -2,11 +2,13 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { desc, sql } from 'drizzle-orm'
 import { coachingNotes, getDb, hrZoneDistributions, runs, shoes } from '~/db'
-import { isMockMode, mockDashboardData } from '~/mocks/data'
+import { isMockMode, type DashboardData } from '~/mocks/data'
+import { getMockBaseUrl } from '~/mocks/base-url'
 
 const getDashboardData = createServerFn({ method: 'GET' }).handler(async () => {
   if (isMockMode()) {
-    return mockDashboardData
+    const res = await fetch(`${getMockBaseUrl()}/api/dashboard`)
+    return res.json() as Promise<DashboardData>
   }
 
   const db = await getDb()
