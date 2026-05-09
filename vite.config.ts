@@ -14,10 +14,6 @@ export default defineConfig({
     port,
     allowedHosts: ['.anthood.net'],
   },
-  define: {
-    'process.env.PORT': JSON.stringify(String(port)),
-    'process.env.HOST': JSON.stringify(host),
-  },
   plugins: [
     tsconfigPaths(),
     tailwindcss(),
