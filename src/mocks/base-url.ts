@@ -1,3 +1,13 @@
+type LocationLike = {
+  protocol: string
+  hostname: string
+  port: string
+}
+
+type GlobalWithLocation = typeof globalThis & {
+  location?: LocationLike
+}
+
 export function getMockBaseUrl() {
   // On server: use process.env
   if (typeof process !== 'undefined' && process.env['PORT']) {
@@ -7,7 +17,7 @@ export function getMockBaseUrl() {
   }
 
   // Browser: use current location (if available)
-  const loc = (globalThis as any).location
+  const loc = (globalThis as GlobalWithLocation).location
   if (loc) {
     return `${loc.protocol}//${loc.hostname}:${loc.port}`
   }

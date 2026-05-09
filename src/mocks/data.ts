@@ -98,6 +98,16 @@ const mockShoes: MockShoe[] = [
     category: 'daily trainer',
     totalKm: 20.9,
   },
+  {
+    id: 'mock-shoe-3',
+    brand: 'Saucony',
+    model: 'Endorphin Speed',
+    variant: '4',
+    role: 'workout',
+    status: 'active',
+    category: 'speed trainer',
+    totalKm: 18.6,
+  },
 ]
 
 const mockRuns: MockRun[] = [
@@ -178,6 +188,23 @@ const mockRuns: MockRun[] = [
     coachingNote: {
       effortLabel: 'Strong',
       recommendation: 'Recover easy tomorrow.',
+    },
+  },
+  {
+    id: 'mock-run-6',
+    date: '2026-05-02',
+    activityType: 'Run',
+    distanceKm: 9.4,
+    durationSeconds: 2504,
+    avgPaceSecPerKm: 266,
+    avgCadence: 176,
+    avgStrideLengthM: 1.29,
+    avgHr: 154,
+    workoutIntent: 'Intervals',
+    shoeId: 'mock-shoe-3',
+    coachingNote: {
+      effortLabel: 'Snappy',
+      recommendation: 'Good pop off the ground — keep recoveries relaxed.',
     },
   },
 ]
@@ -278,6 +305,27 @@ export function getMockRunsOverview() {
   return {
     chartData,
     aggregatedChartData: aggregateTrendPoints(chartData),
+    runTableRows: mockRuns.map((run) => {
+      const shoe = getShoeById(run.shoeId)
+
+      return {
+        id: run.id,
+        date: run.date,
+        distanceKm: run.distanceKm,
+        cadence: run.avgCadence,
+        strideLengthM: run.avgStrideLengthM,
+        pace: run.avgPaceSecPerKm,
+        avgHr: run.avgHr,
+        workoutIntent: run.workoutIntent,
+        shoe: shoe
+          ? {
+              brand: shoe.brand,
+              model: shoe.model,
+              variant: shoe.variant,
+            }
+          : null,
+      }
+    }),
     summary: {
       runCount: chartData.length,
       totalDistanceKm: chartData.reduce((sum, run) => sum + run.distanceKm, 0),
