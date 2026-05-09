@@ -204,8 +204,9 @@ function toTrendPoint(run: MockRun): TrendChartPoint {
   }
 }
 
-export const mockDashboardData: DashboardData = {
-  runtimePort: process.env.PORT ?? 'unknown',
+function buildMockDashboardData(runtimePort?: string): DashboardData {
+  return {
+    runtimePort: runtimePort || process.env.PORT || 'unknown',
   user: { displayName: 'Mock Runner' },
   summary: {
     runCount: mockRuns.length,
@@ -262,6 +263,11 @@ export const mockDashboardData: DashboardData = {
       status: shoe.status,
     }
   }),
+  }
+}
+
+export function getMockDashboardData(runtimePort?: string): DashboardData {
+  return buildMockDashboardData(runtimePort)
 }
 
 export function getMockRunsOverview() {
