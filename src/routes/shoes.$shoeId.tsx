@@ -5,6 +5,7 @@ import { TrendLineChart, aggregateTrendPoints, formatTrendPace, formatTrendShort
 import { getDb, runs, shoes } from '~/db'
 import { isMockMode, type ShoeDetailData } from '~/mocks/data'
 import { getMockBaseUrl } from '~/mocks/base-url'
+import { ShoeNameInline, formatShoeName } from '~/components/shoe-name'
 
 const getShoeDetail = createServerFn({ method: 'GET' })
   .inputValidator((shoeId: string) => shoeId)
@@ -85,8 +86,7 @@ export const Route = createFileRoute('/shoes/$shoeId')({
 
 function ShoeDetailPage() {
   const data = Route.useLoaderData()
-  const variant = data.shoe.variant ? ` ${data.shoe.variant}` : ''
-  const shoeName = `${data.shoe.brand} ${data.shoe.model}${variant}`
+  const shoeName = formatShoeName(data.shoe)
 
   return (
     <main className="p-6 space-y-8 max-w-6xl mx-auto">
@@ -98,7 +98,13 @@ function ShoeDetailPage() {
           ← Back to dashboard
         </Link>
         <div>
-          <h1 className="text-3xl font-bold">{shoeName}</h1>
+          <h1 className="text-3xl font-bold">
+            <ShoeNameInline
+              brand={data.shoe.brand}
+              model={data.shoe.model}
+              variant={data.shoe.variant}
+            />
+          </h1>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
             {data.shoe.role} • {data.shoe.status}
             {data.shoe.category ? ` • ${data.shoe.category}` : ''}

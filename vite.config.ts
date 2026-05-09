@@ -11,6 +11,7 @@ export default defineConfig({
   server: {
     host,
     port,
+    allowedHosts: ['.anthood.net'],
   },
   resolve: {
     tsconfigPaths: true,

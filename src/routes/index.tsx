@@ -4,6 +4,7 @@ import { desc, sql } from 'drizzle-orm'
 import { coachingNotes, getDb, hrZoneDistributions, runs, shoes } from '~/db'
 import { isMockMode, type DashboardData } from '~/mocks/data'
 import { getMockBaseUrl } from '~/mocks/base-url'
+import { ShoeNameInline } from '~/components/shoe-name'
 
 const getDashboardData = createServerFn({ method: 'GET' }).handler(async () => {
   if (isMockMode()) {
@@ -74,6 +75,7 @@ const getDashboardData = createServerFn({ method: 'GET' }).handler(async () => {
   const notesMap = new Map(notesByRunId.map((note) => [note.runId, note]))
 
   return {
+    runtimePort: process.env.PORT ?? 'unknown',
     user: user
       ? {
           displayName: user.displayName,
@@ -152,7 +154,9 @@ function Home() {
   return (
     <main className="p-6 space-y-8 max-w-6xl mx-auto">
       <section className="space-y-2">
-        <h1 className="text-3xl font-bold">AlphaRunner</h1>
+        <h1 className="text-3xl font-bold">
+          AlphaRunner <span className="text-lg font-medium text-gray-500 dark:text-gray-400">({data.runtimePort})</span>
+        </h1>
         <p className="text-gray-600 dark:text-gray-400 max-w-3xl">
           Live dashboard for {data.user?.displayName ?? 'your running data'}, backed by the AlphaRunner database.
         </p>
@@ -205,7 +209,13 @@ function Home() {
                     </td>
                     <td className="py-3 pr-4 whitespace-nowrap">{run.avgHr ?? '—'}</td>
                     <td className="py-3 pr-4">
-                      {run.shoe ? `${run.shoe.brand} ${run.shoe.model}${run.shoe.variant ? ` ${run.shoe.variant}` : ''}` : 'Unassigned'}
+                      {run.shoe ? (
+                        <ShoeNameInline
+                          brand={run.shoe.brand}
+                          model={run.shoe.model}
+                          variant={run.shoe.variant}
+                        />
+                      ) : 'Unassigned'}
                     </td>
                     <td className="py-3 pr-4 max-w-sm">
                       {run.coachingNote ? (
@@ -252,7 +262,12 @@ function Home() {
                         params={{ shoeId: shoe.id }}
                         className="font-medium text-blue-600 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
                       >
-                        {shoe.brand} {shoe.model}{shoe.variant ? ` ${shoe.variant}` : ''}
+                        <ShoeNameInline
+                          brand={shoe.brand}
+                          model={shoe.model}
+                          variant={shoe.variant}
+                          textClassName="font-medium"
+                        />
                       </Link>
                       <div className="text-xs text-gray-500 dark:text-gray-400">
                         {shoe.role} • {shoe.status}

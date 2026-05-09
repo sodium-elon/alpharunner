@@ -34,6 +34,7 @@ type MockRun = {
 }
 
 export type DashboardData = {
+  runtimePort: string
   user: { displayName: string } | null
   summary: {
     runCount: number
@@ -204,6 +205,7 @@ function toTrendPoint(run: MockRun): TrendChartPoint {
 }
 
 export const mockDashboardData: DashboardData = {
+  runtimePort: process.env.PORT ?? 'unknown',
   user: { displayName: 'Mock Runner' },
   summary: {
     runCount: mockRuns.length,
