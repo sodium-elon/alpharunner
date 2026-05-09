@@ -6,6 +6,7 @@ import {
   Scripts,
   createRootRoute,
 } from '@tanstack/react-router'
+import { createServerFn } from '@tanstack/react-start'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import * as React from 'react'
 import { DefaultCatchBoundary } from '~/components/DefaultCatchBoundary'
@@ -13,18 +14,31 @@ import { NotFound } from '~/components/NotFound'
 import appCss from '~/app.css?url'
 import { seo } from '~/utils/seo'
 
+const getRuntimeInfo = createServerFn({ method: 'GET' }).handler(async () => ({
+  runtimePort: process.env.PORT ?? 'unknown',
+}))
+
+function getAppTitle(runtimePort: string) {
+  return `AlphaRunner (${runtimePort})`
+}
+
 export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      ...seo({
-        title: 'AlphaRunner',
-        description: 'Dashboard and control center for John\'s running data.',
-      }),
-    ],
-    links: [{ rel: 'stylesheet', href: appCss }],
-  }),
+  loader: () => getRuntimeInfo(),
+  head: ({ loaderData }) => {
+    const runtimePort = loaderData?.runtimePort ?? 'unknown'
+
+    return {
+      meta: [
+        { charSet: 'utf-8' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+        ...seo({
+          title: getAppTitle(runtimePort),
+          description: 'Dashboard and control center for John\'s running data.',
+        }),
+      ],
+      links: [{ rel: 'stylesheet', href: appCss }],
+    }
+  },
   errorComponent: DefaultCatchBoundary,
   notFoundComponent: () => <NotFound />,
   shellComponent: RootDocument,
@@ -36,13 +50,18 @@ function RootComponent() {
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  const { runtimePort } = Route.useLoaderData()
+
   return (
     <html>
       <head>
         <HeadContent />
       </head>
       <body>
-        <div className="p-4 flex gap-4 text-lg border-b border-gray-200 dark:border-gray-800">
+        <div className="p-4 flex items-center gap-4 text-lg border-b border-gray-200 dark:border-gray-800">
+          <div className="font-semibold">
+            AlphaRunner <span className="text-sm font-medium text-gray-500 dark:text-gray-400">({runtimePort})</span>
+          </div>
           <Link
             to="/"
             activeProps={{

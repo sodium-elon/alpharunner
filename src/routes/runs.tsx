@@ -5,6 +5,7 @@ import { TrendLineChart, aggregateTrendPoints, formatTrendPace, formatTrendShort
 import { getDb, runs } from '~/db'
 import { isMockMode, type RunsOverviewData } from '~/mocks/data'
 import { getMockBaseUrl } from '~/mocks/base-url'
+import { ShoeNameInline } from '~/components/shoe-name'
 
 const getRunsOverview = createServerFn({ method: 'GET' }).handler(async () => {
   if (isMockMode()) {
@@ -48,6 +49,23 @@ const getRunsOverview = createServerFn({ method: 'GET' }).handler(async () => {
   return {
     chartData,
     aggregatedChartData: aggregateTrendPoints(chartData),
+    runTableRows: runRows.map((run) => ({
+      id: run.id,
+      date: run.date,
+      distanceKm: Number(run.distanceKm),
+      cadence: run.avgCadence,
+      strideLengthM: run.avgStrideLengthM == null ? null : Number(run.avgStrideLengthM),
+      pace: run.avgPaceSecPerKm,
+      avgHr: run.avgHr,
+      workoutIntent: run.workoutIntent,
+      shoe: run.shoe
+        ? {
+            brand: run.shoe.brand,
+            model: run.shoe.model,
+            variant: run.shoe.variant,
+          }
+        : null,
+    })),
     summary: {
       runCount: summary?.runCount ?? 0,
       totalDistanceKm: Number(summary?.totalDistanceKm ?? '0'),
@@ -133,10 +151,18 @@ function RunsOverviewPage() {
               </tr>
             </thead>
             <tbody>
-              {data.chartData.map((run) => (
+              {data.runTableRows.map((run) => (
                 <tr key={run.id} className="border-b last:border-0 align-top">
                   <td className="py-3 pr-4 whitespace-nowrap">{run.date}</td>
-                  <td className="py-3 pr-4">{run.shoeName ?? 'Unassigned'}</td>
+                  <td className="py-3 pr-4">
+                    {run.shoe ? (
+                      <ShoeNameInline
+                        brand={run.shoe.brand}
+                        model={run.shoe.model}
+                        variant={run.shoe.variant}
+                      />
+                    ) : 'Unassigned'}
+                  </td>
                   <td className="py-3 pr-4 whitespace-nowrap">{run.distanceKm.toFixed(2)} km</td>
                   <td className="py-3 pr-4 whitespace-nowrap">{run.cadence ?? '—'}</td>
                   <td className="py-3 pr-4 whitespace-nowrap">{run.strideLengthM == null ? '—' : `${run.strideLengthM.toFixed(2)} m`}</td>

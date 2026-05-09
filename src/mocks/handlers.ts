@@ -1,9 +1,11 @@
 import { http, HttpResponse } from 'msw'
-import { mockDashboardData, getMockRunsOverview, getMockShoeDetail } from './data'
+import { getMockDashboardData, getMockRunsOverview, getMockShoeDetail } from './data'
 
 export const handlers = [
-  http.get('*/api/dashboard', () => {
-    return HttpResponse.json(mockDashboardData)
+  http.get('*/api/dashboard', ({ request }) => {
+    const url = new URL(request.url)
+    const port = url.port || '3000'
+    return HttpResponse.json(getMockDashboardData(port))
   }),
   http.get('*/api/runs', () => {
     return HttpResponse.json(getMockRunsOverview())

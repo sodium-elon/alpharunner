@@ -166,10 +166,13 @@ export function TrendLineChart({ data }: { data: TrendChartPoint[] }) {
               backgroundColor: 'rgb(255 255 255)',
               boxShadow: '0 8px 24px rgba(0, 0, 0, 0.08)',
             }}
-            formatter={(value: number | string, name: string) => {
-              if (name === chartConfig.speedKmh.label) return [`${Number(value).toFixed(2)} km/h`, name]
-              if (name === chartConfig.strideLengthM.label) return [`${Number(value).toFixed(2)} m`, name]
-              return [value, name]
+            formatter={(value, name) => {
+              const safeValue = value == null ? '—' : value
+              const safeName = String(name)
+
+              if (safeName === chartConfig.speedKmh.label && value != null) return [`${Number(value).toFixed(2)} km/h`, safeName]
+              if (safeName === chartConfig.strideLengthM.label && value != null) return [`${Number(value).toFixed(2)} m`, safeName]
+              return [safeValue, safeName]
             }}
             labelFormatter={(_, payload) => {
               const point = payload?.[0]?.payload as TrendChartPoint | undefined

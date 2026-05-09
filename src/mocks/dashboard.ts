@@ -1,1 +1,1 @@
-export { mockDashboardData, type DashboardData } from './data'
+export { getMockDashboardData, type DashboardData } from './data'
