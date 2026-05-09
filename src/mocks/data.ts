@@ -303,3 +303,6 @@ export function getMockShoeDetail(shoeId: string) {
     aggregatedChartData: aggregateTrendPoints(chartData),
   }
 }
+
+export type RunsOverviewData = ReturnType<typeof getMockRunsOverview>
+export type ShoeDetailData = ReturnType<typeof getMockShoeDetail>

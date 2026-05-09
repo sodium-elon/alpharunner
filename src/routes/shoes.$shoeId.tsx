@@ -3,11 +3,15 @@ import { createServerFn } from '@tanstack/react-start'
 import { asc, eq, sql } from 'drizzle-orm'
 import { TrendLineChart, aggregateTrendPoints, formatTrendPace, formatTrendShortDate, type TrendChartPoint } from '~/components/trend-line-chart'
 import { getDb, runs, shoes } from '~/db'
-import { getMockShoeDetail, isMockMode } from '~/mocks/data'
+import { isMockMode, type ShoeDetailData } from '~/mocks/data'
+import { getMockBaseUrl } from '~/mocks/base-url'
 
-const getShoeDetail = createServerFn({ method: 'GET' }).handler(async ({ data }: { data: { shoeId: string } }) => {
+const getShoeDetail = createServerFn({ method: 'GET' })
+  .inputValidator((shoeId: string) => shoeId)
+  .handler(async ({ data: shoeId }) => {
   if (isMockMode()) {
-    return getMockShoeDetail(data.shoeId)
+    const res = await fetch(`${getMockBaseUrl()}/api/shoes/${shoeId}`)
+    return res.json() as Promise<ShoeDetailData>
   }
 
   const db = await getDb()
@@ -24,7 +28,7 @@ const getShoeDetail = createServerFn({ method: 'GET' }).handler(async ({ data }:
       totalKm: sql<string>`${shoes.totalKm}::text`,
     })
     .from(shoes)
-    .where(eq(shoes.id, data.shoeId))
+    .where(eq(shoes.id, shoeId))
 
   if (!shoe) {
     throw new Error('Shoe not found')
@@ -75,13 +79,14 @@ const getShoeDetail = createServerFn({ method: 'GET' }).handler(async ({ data }:
 })
 
 export const Route = createFileRoute('/shoes/$shoeId')({
-  loader: ({ params }) => getShoeDetail({ data: { shoeId: params.shoeId } }),
+  loader: ({ params }) => getShoeDetail({ data: params.shoeId }),
   component: ShoeDetailPage,
 })
 
 function ShoeDetailPage() {
   const data = Route.useLoaderData()
-  const shoeName = `${data.shoe.brand} ${data.shoe.model}${data.shoe.variant ? ` ${data.shoe.variant}` : ''}`
+  const variant = data.shoe.variant ? ` ${data.shoe.variant}` : ''
+  const shoeName = `${data.shoe.brand} ${data.shoe.model}${variant}`
 
   return (
     <main className="p-6 space-y-8 max-w-6xl mx-auto">
@@ -164,7 +169,7 @@ function ShoeDetailPage() {
   )
 }
 
-function StatCard({ label, value, helper }: { label: string; value: string; helper: string }) {
+function StatCard({ label, value, helper }: { readonly label: string; readonly value: string; readonly helper: string }) {
   return (
     <div className="rounded-lg border bg-white/60 dark:bg-gray-900/60 p-5 shadow-sm">
       <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400">{label}</h2>
