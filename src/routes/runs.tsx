@@ -136,39 +136,35 @@ function RunsOverviewPage() {
         <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
           Raw points behind the chart.
         </p>
-        <div className="mt-4 overflow-x-auto">
-          <table className="min-w-full text-sm">
+        <div className="@container mt-4 overflow-x-auto">
+          <table className="w-full text-sm">
             <thead>
               <tr className="border-b text-left text-gray-500 dark:text-gray-400">
                 <th className="py-2 pr-4 font-medium">Date</th>
-                <th className="py-2 pr-4 font-medium">Shoe</th>
                 <th className="py-2 pr-4 font-medium">Distance</th>
-                <th className="py-2 pr-4 font-medium hidden sm:table-cell">Cadence</th>
-                <th className="py-2 pr-4 font-medium hidden md:table-cell">Stride</th>
                 <th className="py-2 pr-4 font-medium">Pace</th>
-                <th className="py-2 pr-4 font-medium hidden md:table-cell">HR</th>
-                <th className="py-2 pr-4 font-medium hidden sm:table-cell">Intent</th>
+                <th className="py-2 pr-4 font-medium hidden @[26rem]:table-cell">Shoe</th>
+                <th className="py-2 pr-4 font-medium hidden @[36rem]:table-cell">Cadence</th>
+                <th className="py-2 pr-4 font-medium hidden @[44rem]:table-cell">Stride</th>
+                <th className="py-2 pr-4 font-medium hidden @[44rem]:table-cell">HR</th>
+                <th className="py-2 pr-4 font-medium hidden @[36rem]:table-cell">Intent</th>
               </tr>
             </thead>
             <tbody>
               {data.runTableRows.map((run) => (
                 <tr key={run.id} className="border-b last:border-0 align-top">
-                  <td className="py-3 pr-4 whitespace-nowrap text-xs sm:text-sm">{run.date}</td>
-                  <td className="py-3 pr-4 text-xs sm:text-sm">
+                  <td className="py-3 pr-4 whitespace-nowrap text-xs @[26rem]:text-sm">{run.date}</td>
+                  <td className="py-3 pr-4 whitespace-nowrap text-xs @[26rem]:text-sm">{run.distanceKm.toFixed(2)} km</td>
+                  <td className="py-3 pr-4 whitespace-nowrap text-xs @[26rem]:text-sm">{formatTrendPace(run.pace)}</td>
+                  <td className="py-3 pr-4 hidden @[26rem]:table-cell">
                     {run.shoe ? (
-                      <ShoeNameInline
-                        brand={run.shoe.brand}
-                        model={run.shoe.model}
-                        variant={run.shoe.variant}
-                      />
+                      <ShoeNameInline brand={run.shoe.brand} model={run.shoe.model} variant={run.shoe.variant} />
                     ) : 'Unassigned'}
                   </td>
-                  <td className="py-3 pr-4 whitespace-nowrap text-xs sm:text-sm">{run.distanceKm.toFixed(2)} km</td>
-                  <td className="py-3 pr-4 whitespace-nowrap hidden sm:table-cell text-xs sm:text-sm">{run.cadence ?? '—'}</td>
-                  <td className="py-3 pr-4 whitespace-nowrap hidden md:table-cell text-xs sm:text-sm">{run.strideLengthM == null ? '—' : `${run.strideLengthM.toFixed(2)} m`}</td>
-                  <td className="py-3 pr-4 whitespace-nowrap text-xs sm:text-sm">{formatTrendPace(run.pace)}</td>
-                  <td className="py-3 pr-4 whitespace-nowrap hidden md:table-cell text-xs sm:text-sm">{run.avgHr ?? '—'}</td>
-                  <td className="py-3 pr-4 hidden sm:table-cell text-xs sm:text-sm">{run.workoutIntent}</td>
+                  <td className="py-3 pr-4 whitespace-nowrap hidden @[36rem]:table-cell">{run.cadence ?? '—'}</td>
+                  <td className="py-3 pr-4 whitespace-nowrap hidden @[44rem]:table-cell">{run.strideLengthM == null ? '—' : `${run.strideLengthM.toFixed(2)} m`}</td>
+                  <td className="py-3 pr-4 whitespace-nowrap hidden @[44rem]:table-cell">{run.avgHr ?? '—'}</td>
+                  <td className="py-3 pr-4 hidden @[36rem]:table-cell">{run.workoutIntent}</td>
                 </tr>
               ))}
             </tbody>

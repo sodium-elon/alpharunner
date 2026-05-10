@@ -181,43 +181,39 @@ function Home() {
             </div>
           </div>
 
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full text-sm">
+          <div className="@container mt-4 overflow-x-auto">
+            <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-gray-500 dark:text-gray-400">
                   <th className="py-2 pr-4 font-medium">Date</th>
-                  <th className="py-2 pr-4 font-medium hidden sm:table-cell">Type</th>
+                  <th className="py-2 pr-4 font-medium hidden @[26rem]:table-cell">Type</th>
                   <th className="py-2 pr-4 font-medium">Distance</th>
                   <th className="py-2 pr-4 font-medium">Pace</th>
-                  <th className="py-2 pr-4 font-medium hidden md:table-cell">Avg HR</th>
-                  <th className="py-2 pr-4 font-medium">Shoe</th>
-                  <th className="py-2 pr-4 font-medium hidden lg:table-cell">Coaching</th>
+                  <th className="py-2 pr-4 font-medium hidden @[26rem]:table-cell">Shoe</th>
+                  <th className="py-2 pr-4 font-medium hidden @[40rem]:table-cell">Avg HR</th>
+                  <th className="py-2 pr-4 font-medium hidden @[52rem]:table-cell">Coaching</th>
                 </tr>
               </thead>
               <tbody>
                 {data.recentRuns.map((run) => (
                   <tr key={run.id} className="border-b last:border-0 align-top">
-                    <td className="py-3 pr-4 whitespace-nowrap text-xs sm:text-sm">{run.date}</td>
-                    <td className="py-3 pr-4 hidden sm:table-cell">
+                    <td className="py-3 pr-4 whitespace-nowrap text-xs @[26rem]:text-sm">{run.date}</td>
+                    <td className="py-3 pr-4 hidden @[26rem]:table-cell">
                       <div className="font-medium">{run.activityType}</div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">{run.workoutIntent}</div>
                     </td>
-                    <td className="py-3 pr-4 whitespace-nowrap text-xs sm:text-sm">{run.distanceKm.toFixed(2)} km</td>
-                    <td className="py-3 pr-4 whitespace-nowrap text-xs sm:text-sm">
+                    <td className="py-3 pr-4 whitespace-nowrap text-xs @[26rem]:text-sm">{run.distanceKm.toFixed(2)} km</td>
+                    <td className="py-3 pr-4 whitespace-nowrap text-xs @[26rem]:text-sm">
                       <div>{formatPace(run.avgPaceSecPerKm)}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">{formatDuration(run.durationSeconds)}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 hidden @[26rem]:block">{formatDuration(run.durationSeconds)}</div>
                     </td>
-                    <td className="py-3 pr-4 whitespace-nowrap hidden md:table-cell text-xs sm:text-sm">{run.avgHr ?? '—'}</td>
-                    <td className="py-3 pr-4 text-xs sm:text-sm">
+                    <td className="py-3 pr-4 hidden @[26rem]:table-cell">
                       {run.shoe ? (
-                        <ShoeNameInline
-                          brand={run.shoe.brand}
-                          model={run.shoe.model}
-                          variant={run.shoe.variant}
-                        />
+                        <ShoeNameInline brand={run.shoe.brand} model={run.shoe.model} variant={run.shoe.variant} />
                       ) : 'Unassigned'}
                     </td>
-                    <td className="py-3 pr-4 max-w-sm hidden lg:table-cell text-xs sm:text-sm">
+                    <td className="py-3 pr-4 whitespace-nowrap hidden @[40rem]:table-cell">{run.avgHr ?? '—'}</td>
+                    <td className="py-3 pr-4 max-w-sm hidden @[52rem]:table-cell">
                       {run.coachingNote ? (
                         <div>
                           <div className="font-medium">{run.coachingNote.effortLabel}</div>
@@ -225,9 +221,7 @@ function Home() {
                             {run.coachingNote.recommendation ?? 'No recommendation saved'}
                           </div>
                         </div>
-                      ) : (
-                        '—'
-                      )}
+                      ) : '—'}
                     </td>
                   </tr>
                 ))}
@@ -241,16 +235,16 @@ function Home() {
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
             Mileage and average run metrics across all runs logged in each shoe.
           </p>
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full text-sm">
+          <div className="@container mt-4 overflow-x-auto">
+            <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-gray-500 dark:text-gray-400">
                   <th className="py-2 pr-4 font-medium">Shoe</th>
-                  <th className="py-2 pr-4 font-medium">Distance</th>
-                  <th className="py-2 pr-4 font-medium hidden sm:table-cell">Runs</th>
-                  <th className="py-2 pr-4 font-medium hidden md:table-cell">Cadence</th>
-                  <th className="py-2 pr-4 font-medium hidden md:table-cell">Avg HR</th>
-                  <th className="py-2 pr-4 font-medium hidden sm:table-cell">Avg Pace</th>
+                  <th className="py-2 pr-4 font-medium">Dist</th>
+                  <th className="py-2 pr-4 font-medium hidden @[18rem]:table-cell">Runs</th>
+                  <th className="py-2 pr-4 font-medium hidden @[18rem]:table-cell">Pace</th>
+                  <th className="py-2 pr-4 font-medium hidden @[28rem]:table-cell">Cad</th>
+                  <th className="py-2 pr-4 font-medium hidden @[28rem]:table-cell">HR</th>
                 </tr>
               </thead>
               <tbody>
@@ -262,22 +256,15 @@ function Home() {
                         params={{ shoeId: shoe.id }}
                         className="font-medium text-blue-600 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
                       >
-                        <ShoeNameInline
-                          brand={shoe.brand}
-                          model={shoe.model}
-                          variant={shoe.variant}
-                          textClassName="font-medium"
-                        />
+                        <ShoeNameInline brand={shoe.brand} model={shoe.model} variant={shoe.variant} textClassName="font-medium" />
                       </Link>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        {shoe.role} • {shoe.status}
-                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">{shoe.role} • {shoe.status}</div>
                     </td>
-                    <td className="py-3 pr-4 whitespace-nowrap text-xs sm:text-sm">{shoe.totalKm.toFixed(2)} km</td>
-                    <td className="py-3 pr-4 whitespace-nowrap hidden sm:table-cell text-xs sm:text-sm">{shoe.runCount}</td>
-                    <td className="py-3 pr-4 whitespace-nowrap hidden md:table-cell text-xs sm:text-sm">{shoe.avgCadence == null ? '—' : Math.round(shoe.avgCadence)}</td>
-                    <td className="py-3 pr-4 whitespace-nowrap hidden md:table-cell text-xs sm:text-sm">{shoe.avgHr == null ? '—' : Math.round(shoe.avgHr)}</td>
-                    <td className="py-3 pr-4 whitespace-nowrap hidden sm:table-cell text-xs sm:text-sm">{shoe.avgPaceSecPerKm == null ? '—' : formatPace(shoe.avgPaceSecPerKm)}</td>
+                    <td className="py-3 pr-4 whitespace-nowrap">{shoe.totalKm.toFixed(1)} km</td>
+                    <td className="py-3 pr-4 whitespace-nowrap hidden @[18rem]:table-cell">{shoe.runCount}</td>
+                    <td className="py-3 pr-4 whitespace-nowrap hidden @[18rem]:table-cell">{shoe.avgPaceSecPerKm == null ? '—' : formatPace(shoe.avgPaceSecPerKm)}</td>
+                    <td className="py-3 pr-4 whitespace-nowrap hidden @[28rem]:table-cell">{shoe.avgCadence == null ? '—' : Math.round(shoe.avgCadence)}</td>
+                    <td className="py-3 pr-4 whitespace-nowrap hidden @[28rem]:table-cell">{shoe.avgHr == null ? '—' : Math.round(shoe.avgHr)}</td>
                   </tr>
                 ))}
               </tbody>
