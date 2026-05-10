@@ -1,6 +1,6 @@
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { coachingNotes, hrZoneDistributions, runs, shoeObservations, shoes, users } from "./schema";
+import { coachingNotes, hrZoneDistributions, runLaps, runs, shoeObservations, shoes, users } from "./schema";
 
 export const activityTypeSchema = z.enum(["outdoor", "treadmill", "trail", "track", "race"]);
 export const hrSourceSchema = z.enum(["chest_strap", "wrist", "unknown"]);
@@ -113,4 +113,36 @@ export const coachingNoteSchema = createInsertSchema(coachingNotes)
     keyPositive: z.string().optional().nullable(),
     keyConcern: z.string().optional().nullable(),
     recommendation: z.string().optional().nullable(),
+  });
+
+export const lapTypeSchema = z.enum(["distance", "manual", "time"]);
+
+export const runLapSchema = createInsertSchema(runLaps)
+  .omit({ id: true, createdAt: true })
+  .extend({
+    lapType: lapTypeSchema.default("distance"),
+    lapIndex: z.coerce.number().int().min(0),
+    startDistanceM: z.coerce.number().int().min(0),
+    endDistanceM: z.coerce.number().int().min(0),
+    startElapsedS: z.coerce.number().int().min(0),
+    endElapsedS: z.coerce.number().int().min(0),
+    splitDistanceM: z.coerce.number().int().min(0),
+    splitDurationS: z.coerce.number().int().min(0),
+    paceSecKm: z.coerce.number().int().positive(),
+    avgCadence: z.coerce.number().int().positive().optional().nullable(),
+    maxCadence: z.coerce.number().int().positive().optional().nullable(),
+    avgStrideLengthM: z.coerce.number().positive().optional().nullable(),
+    avgHr: z.coerce.number().int().positive().optional().nullable(),
+    maxHr: z.coerce.number().int().positive().optional().nullable(),
+    avgPowerW: z.coerce.number().int().positive().optional().nullable(),
+    maxPowerW: z.coerce.number().int().positive().optional().nullable(),
+    avgGroundContactMs: z.coerce.number().int().positive().optional().nullable(),
+    avgVerticalOscillationCm: z.coerce.number().positive().optional().nullable(),
+    avgVerticalRatioPct: z.coerce.number().min(0).optional().nullable(),
+    elevationGainM: z.coerce.number().int().optional().nullable(),
+    elevationLossM: z.coerce.number().int().optional().nullable(),
+    startLat: z.coerce.number().min(-90).max(90).optional().nullable(),
+    startLng: z.coerce.number().min(-180).max(180).optional().nullable(),
+    endLat: z.coerce.number().min(-90).max(90).optional().nullable(),
+    endLng: z.coerce.number().min(-180).max(180).optional().nullable(),
   });

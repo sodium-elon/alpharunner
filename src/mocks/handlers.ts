@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw'
-import { getMockDashboardData, getMockRunsOverview, getMockShoeDetail } from './data'
+import { getMockDashboardData, getMockRunDetail, getMockRunsOverview, getMockShoeDetail } from './data'
 
 export const handlers = [
   http.get('*/api/dashboard', ({ request }) => {
@@ -9,6 +9,13 @@ export const handlers = [
   }),
   http.get('*/api/runs', () => {
     return HttpResponse.json(getMockRunsOverview())
+  }),
+  http.get('*/api/runs/:runId', ({ params }) => {
+    try {
+      return HttpResponse.json(getMockRunDetail(params.runId as string))
+    } catch {
+      return HttpResponse.json({ error: 'Run not found' }, { status: 404 })
+    }
   }),
   http.get('*/api/shoes/:shoeId', ({ params }) => {
     try {
