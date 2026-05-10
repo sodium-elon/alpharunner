@@ -148,23 +148,23 @@ function ShoeDetailPage() {
               <tr className="border-b text-left text-gray-500 dark:text-gray-400">
                 <th className="py-2 pr-4 font-medium">Date</th>
                 <th className="py-2 pr-4 font-medium">Distance</th>
-                <th className="py-2 pr-4 font-medium">Cadence</th>
-                <th className="py-2 pr-4 font-medium">Stride</th>
-                <th className="py-2 pr-4 font-medium">Avg Pace</th>
-                <th className="py-2 pr-4 font-medium">Avg HR</th>
-                <th className="py-2 pr-4 font-medium">Intent</th>
+                <th className="py-2 pr-4 font-medium hidden sm:table-cell">Cadence</th>
+                <th className="py-2 pr-4 font-medium hidden md:table-cell">Stride</th>
+                <th className="py-2 pr-4 font-medium">Pace</th>
+                <th className="py-2 pr-4 font-medium hidden md:table-cell">HR</th>
+                <th className="py-2 pr-4 font-medium hidden sm:table-cell">Intent</th>
               </tr>
             </thead>
             <tbody>
               {data.chartData.map((run) => (
                 <tr key={run.id} className="border-b last:border-0 align-top">
-                  <td className="py-3 pr-4 whitespace-nowrap">{run.date}</td>
-                  <td className="py-3 pr-4 whitespace-nowrap">{run.distanceKm.toFixed(2)} km</td>
-                  <td className="py-3 pr-4 whitespace-nowrap">{run.cadence ?? '—'}</td>
-                  <td className="py-3 pr-4 whitespace-nowrap">{run.strideLengthM == null ? '—' : `${run.strideLengthM.toFixed(2)} m`}</td>
-                  <td className="py-3 pr-4 whitespace-nowrap">{formatTrendPace(run.pace)}</td>
-                  <td className="py-3 pr-4 whitespace-nowrap">{run.avgHr ?? '—'}</td>
-                  <td className="py-3 pr-4">{run.workoutIntent}</td>
+                  <td className="py-3 pr-4 whitespace-nowrap text-xs sm:text-sm">{run.date}</td>
+                  <td className="py-3 pr-4 whitespace-nowrap text-xs sm:text-sm">{run.distanceKm.toFixed(2)} km</td>
+                  <td className="py-3 pr-4 whitespace-nowrap hidden sm:table-cell text-xs sm:text-sm">{run.cadence ?? '—'}</td>
+                  <td className="py-3 pr-4 whitespace-nowrap hidden md:table-cell text-xs sm:text-sm">{run.strideLengthM == null ? '—' : `${run.strideLengthM.toFixed(2)} m`}</td>
+                  <td className="py-3 pr-4 whitespace-nowrap text-xs sm:text-sm">{formatTrendPace(run.pace)}</td>
+                  <td className="py-3 pr-4 whitespace-nowrap hidden md:table-cell text-xs sm:text-sm">{run.avgHr ?? '—'}</td>
+                  <td className="py-3 pr-4 hidden sm:table-cell text-xs sm:text-sm">{run.workoutIntent}</td>
                 </tr>
               ))}
             </tbody>
