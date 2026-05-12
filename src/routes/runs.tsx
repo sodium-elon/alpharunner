@@ -33,7 +33,9 @@ const getRunsOverview = createServerFn({ method: 'GET' }).handler(async () => {
     distanceKm: Number(run.distanceKm),
     avgHr: run.avgHr,
     workoutIntent: run.workoutIntent,
-    shoeName: run.shoe ? `${run.shoe.brand} ${run.shoe.model}${run.shoe.variant ? ` ${run.shoe.variant}` : ''}` : 'Unassigned',
+    shoeName: run.shoe
+      ? [run.shoe.brand, run.shoe.model, run.shoe.variant].filter(Boolean).join(' ')
+      : 'Unassigned',
   }))
 
   const [summary] = await db
@@ -152,8 +154,16 @@ function RunsOverviewPage() {
             </thead>
             <tbody>
               {data.runTableRows.map((run) => (
-                <tr key={run.id} className="border-b last:border-0 align-top">
-                  <td className="py-3 pr-4 whitespace-nowrap text-xs @[26rem]:text-sm">{run.date}</td>
+                <tr key={run.id} className="border-b last:border-0 align-top hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                  <td className="py-3 pr-4 whitespace-nowrap text-xs @[26rem]:text-sm">
+                    <Link
+                      to="/run/$runId"
+                      params={{ runId: run.id }}
+                      className="font-medium text-blue-600 hover:underline dark:text-blue-400"
+                    >
+                      {run.date}
+                    </Link>
+                  </td>
                   <td className="py-3 pr-4 whitespace-nowrap text-xs @[26rem]:text-sm">{run.distanceKm.toFixed(2)} km</td>
                   <td className="py-3 pr-4 whitespace-nowrap text-xs @[26rem]:text-sm">{formatTrendPace(run.pace)}</td>
                   <td className="py-3 pr-4 hidden @[26rem]:table-cell">
@@ -175,7 +185,7 @@ function RunsOverviewPage() {
   )
 }
 
-function StatCard({ label, value, helper }: { label: string; value: string; helper: string }) {
+function StatCard({ label, value, helper }: { readonly label: string; readonly value: string; readonly helper: string }) {
   return (
     <div className="rounded-lg border bg-white/60 dark:bg-gray-900/60 p-5 shadow-sm">
       <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400">{label}</h2>

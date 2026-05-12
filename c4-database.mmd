@@ -1,0 +1,28 @@
+C4Component
+    title AlphaRunner — Database Schema (PostgreSQL 15 · alpharunner schema)
+
+    Container_Boundary(schema, "alpharunner schema") {
+
+        Component(users, "users", "1 row · 5 cols", "System accounts. Single-user today — no auth. user_id FKs on shoes and runs are nullable so unowned records are allowed.")
+
+        Component(shoes, "shoes", "3 rows · 16 cols", "Running shoes in rotation. UNIQUE(brand, model, variant). total_km is a stored counter, not computed from runs — diverges from SUM(runs.distance_km) unless synced.")
+
+        Component(runs, "runs", "6 rows · 29 cols", "Core fact table. One flat row per activity. Stores all biomechanical metrics: cadence, HR, stride length, power, ground contact, vertical oscillation, training effect, stamina. garmin_activity_id is the unique import dedup key.")
+
+        Component(run_laps, "run_laps", "0 rows · 28 cols", "Per-split detail for a single run. One row per lap/km split. Stores cumulative boundaries (start_distance_m, start_elapsed_s) plus split-level biomechanics: pace, cadence, stride, HR, power, ground contact, vertical oscillation, elevation delta, and GPS start/end coords. UNIQUE(run_id, lap_index, lap_type). lap_type: distance | manual | time. Empty — pending Garmin import.")
+
+        Component(hr_zones, "hr_zone_distributions", "0 rows · 6 cols", "HR and power zone breakdown per run. Up to 10 rows per run (5 HR + 5 power). UNIQUE(run_id, zone_type, zone_number). Empty — pending Garmin zone data import.")
+
+        Component(shoe_obs, "shoe_observations", "0 rows · 10 cols", "Qualitative shoe feel captured per run. UNIQUE(run_id, shoe_id) — one observation per shoe per run. Tracks cadence effect, pace effect, mechanics quality, comfort score, and terrain fit. Empty — not yet populated.")
+
+        Component(coaching, "coaching_notes", "4 rows · 9 cols", "Structured coaching analysis. UNIQUE(run_id) — strictly one note per run. Captures effort label, intent match, HR reliability verdict, key positive, key concern, and free-text recommendation.")
+    }
+
+    Rel(shoes, users, "shoes.user_id → users.id", "nullable FK")
+    Rel(runs, users, "runs.user_id → users.id", "nullable FK")
+    Rel(runs, shoes, "runs.shoe_id → shoes.id", "nullable FK — run may be unshod")
+    Rel(run_laps, runs, "run_laps.run_id → runs.id", "FK · one row per split")
+    Rel(hr_zones, runs, "hr_zone_distributions.run_id → runs.id", "FK · N rows per run")
+    Rel(shoe_obs, runs, "shoe_observations.run_id → runs.id", "FK")
+    Rel(shoe_obs, shoes, "shoe_observations.shoe_id → shoes.id", "FK")
+    Rel(coaching, runs, "coaching_notes.run_id → runs.id", "FK · unique — 1:0-1")

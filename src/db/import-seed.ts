@@ -6,7 +6,7 @@ import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import * as schema from './schema'
 
-const { coachingNotes, hrZoneDistributions, runs, shoeObservations, shoes, users } = schema
+const { coachingNotes, hrZoneDistributions, runLaps, runs, shoeObservations, shoes, users } = schema
 
 type SeedRecord = Record<string, unknown>
 
@@ -14,6 +14,7 @@ type SeedFile = {
   users?: SeedRecord[]
   shoes?: SeedRecord[]
   runs?: SeedRecord[]
+  run_laps?: SeedRecord[]
   hr_zone_distributions?: SeedRecord[]
   shoe_observations?: SeedRecord[]
   coaching_notes?: SeedRecord[]
@@ -55,6 +56,7 @@ async function main() {
   const mappedUsers = (seed.users ?? []).map((r) => withMappedIds(r, idMap))
   const mappedShoes = (seed.shoes ?? []).map((r) => withMappedIds(r, idMap))
   const mappedRuns = (seed.runs ?? []).map((r) => withMappedIds(r, idMap))
+  const mappedLaps = (seed.run_laps ?? []).map((r) => withMappedIds(r, idMap))
   const mappedHr = (seed.hr_zone_distributions ?? []).map((r) => withMappedIds(r, idMap))
   const mappedShoeObs = (seed.shoe_observations ?? []).map((r) => withMappedIds(r, idMap))
   const mappedCoach = (seed.coaching_notes ?? []).map((r) => withMappedIds(r, idMap))
@@ -147,6 +149,41 @@ async function main() {
   for (const run of mappedRuns) {
     const runId = run.id as string
 
+    await db.delete(runLaps).where(eq(runLaps.runId, runId))
+    const lapRows = mappedLaps.filter((r) => r.run_id === runId)
+    if (lapRows.length) {
+      await db.insert(runLaps).values(lapRows.map((row) => ({
+        id: row.id as string,
+        runId: row.run_id as string,
+        lapIndex: row.lap_index as number,
+        lapType: (row.lap_type as string | null | undefined) ?? 'distance',
+        startDistanceM: row.start_distance_m as number,
+        endDistanceM: row.end_distance_m as number,
+        startElapsedS: row.start_elapsed_s as number,
+        endElapsedS: row.end_elapsed_s as number,
+        splitDistanceM: row.split_distance_m as number,
+        splitDurationS: row.split_duration_s as number,
+        paceSecKm: row.pace_sec_km as number,
+        avgCadence: (row.avg_cadence as number | null | undefined) ?? null,
+        maxCadence: (row.max_cadence as number | null | undefined) ?? null,
+        avgStrideLengthM: row.avg_stride_length_m == null ? null : String(row.avg_stride_length_m),
+        avgHr: (row.avg_hr as number | null | undefined) ?? null,
+        maxHr: (row.max_hr as number | null | undefined) ?? null,
+        avgPowerW: (row.avg_power_w as number | null | undefined) ?? null,
+        maxPowerW: (row.max_power_w as number | null | undefined) ?? null,
+        avgGroundContactMs: (row.avg_ground_contact_ms as number | null | undefined) ?? null,
+        avgVerticalOscillationCm: row.avg_vertical_oscillation_cm == null ? null : String(row.avg_vertical_oscillation_cm),
+        avgVerticalRatioPct: row.avg_vertical_ratio_pct == null ? null : String(row.avg_vertical_ratio_pct),
+        elevationGainM: (row.elevation_gain_m as number | null | undefined) ?? null,
+        elevationLossM: (row.elevation_loss_m as number | null | undefined) ?? null,
+        startLat: row.start_lat == null ? null : String(row.start_lat),
+        startLng: row.start_lng == null ? null : String(row.start_lng),
+        endLat: row.end_lat == null ? null : String(row.end_lat),
+        endLng: row.end_lng == null ? null : String(row.end_lng),
+        createdAt: new Date(),
+      })))
+    }
+
     await db.delete(hrZoneDistributions).where(eq(hrZoneDistributions.runId, runId))
     const hrRows = mappedHr.filter((r) => r.run_id === runId)
     if (hrRows.length) {
@@ -203,6 +240,7 @@ async function main() {
       users: mappedUsers.length,
       shoes: mappedShoes.length,
       runs: mappedRuns.length,
+      run_laps: mappedLaps.length,
       hr_zone_distributions: mappedHr.length,
       shoe_observations: mappedShoeObs.length,
       coaching_notes: mappedCoach.length,

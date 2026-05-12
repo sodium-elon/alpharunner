@@ -131,6 +131,51 @@ export const coachingNotes = alpharunner.table("coaching_notes", {
   uniqueIndex("coaching_notes_run_unique").on(table.runId),
 ]);
 
+export const runLaps = alpharunner.table("run_laps", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  runId: uuid("run_id").notNull().references(() => runs.id),
+  lapIndex: integer("lap_index").notNull(),
+  lapType: text("lap_type").notNull().default("distance"), // distance | manual | time
+
+  // Boundaries — cumulative from run start
+  startDistanceM: integer("start_distance_m").notNull(),
+  endDistanceM: integer("end_distance_m").notNull(),
+  startElapsedS: integer("start_elapsed_s").notNull(),
+  endElapsedS: integer("end_elapsed_s").notNull(),
+
+  // Split totals
+  splitDistanceM: integer("split_distance_m").notNull(),
+  splitDurationS: integer("split_duration_s").notNull(),
+  paceSecKm: integer("pace_sec_km").notNull(),
+
+  // Biomechanics — averages for this split
+  avgCadence: integer("avg_cadence"),
+  maxCadence: integer("max_cadence"),
+  avgStrideLengthM: numeric("avg_stride_length_m", { precision: 5, scale: 2 }),
+  avgHr: integer("avg_hr"),
+  maxHr: integer("max_hr"),
+  avgPowerW: integer("avg_power_w"),
+  maxPowerW: integer("max_power_w"),
+  avgGroundContactMs: integer("avg_ground_contact_ms"),
+  avgVerticalOscillationCm: numeric("avg_vertical_oscillation_cm", { precision: 5, scale: 2 }),
+  avgVerticalRatioPct: numeric("avg_vertical_ratio_pct", { precision: 5, scale: 2 }),
+
+  // Elevation
+  elevationGainM: integer("elevation_gain_m"),
+  elevationLossM: integer("elevation_loss_m"),
+
+  // GPS start/end coordinates for this split
+  startLat: numeric("start_lat", { precision: 9, scale: 6 }),
+  startLng: numeric("start_lng", { precision: 9, scale: 6 }),
+  endLat: numeric("end_lat", { precision: 9, scale: 6 }),
+  endLng: numeric("end_lng", { precision: 9, scale: 6 }),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("run_laps_run_id_idx").on(table.runId),
+  uniqueIndex("run_laps_run_lap_type_unique").on(table.runId, table.lapIndex, table.lapType),
+]);
+
 export const usersRelations = relations(users, ({ many }) => ({
   shoes: many(shoes),
   runs: many(runs),
@@ -155,6 +200,7 @@ export const runsRelations = relations(runs, ({ one, many }) => ({
     references: [shoes.id],
   }),
   hrZones: many(hrZoneDistributions),
+  laps: many(runLaps),
   shoeObservations: many(shoeObservations),
   coachingNotes: many(coachingNotes),
 }));
@@ -174,6 +220,13 @@ export const shoeObservationsRelations = relations(shoeObservations, ({ one }) =
   shoe: one(shoes, {
     fields: [shoeObservations.shoeId],
     references: [shoes.id],
+  }),
+}));
+
+export const runLapsRelations = relations(runLaps, ({ one }) => ({
+  run: one(runs, {
+    fields: [runLaps.runId],
+    references: [runs.id],
   }),
 }));
 

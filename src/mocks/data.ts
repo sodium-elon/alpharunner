@@ -360,5 +360,109 @@ export function getMockShoeDetail(shoeId: string) {
   }
 }
 
+const LAP_PACE_OFFSETS = [5, -8, 3, -5, 10, -3, 8, -10, 2, 6, -4, 0, 7, -6, 4]
+const LAP_HR_OFFSETS = [-5, -3, 0, 2, 4, 5, 6, 7, 8, 8, 7, 6, 7, 8, 9]
+const LAP_CADENCE_OFFSETS = [2, -1, 0, 1, -2, 0, 1, -1, 2, 0, -1, 1, 0, -2, 1]
+
+function buildMockLaps(run: MockRun) {
+  const lapCount = Math.ceil(run.distanceKm)
+  return Array.from({ length: lapCount }, (_, i) => {
+    const isLast = i === lapCount - 1
+    const splitDistanceM = isLast ? Math.round((run.distanceKm - i) * 1000) : 1000
+    const paceSecKm = run.avgPaceSecPerKm + (LAP_PACE_OFFSETS[i % LAP_PACE_OFFSETS.length] ?? 0)
+    const splitDurationS = Math.round((splitDistanceM / 1000) * paceSecKm)
+    const hrOffset = LAP_HR_OFFSETS[i % LAP_HR_OFFSETS.length] ?? 0
+    const cadenceOffset = LAP_CADENCE_OFFSETS[i % LAP_CADENCE_OFFSETS.length] ?? 0
+    return {
+      lapIndex: i,
+      lapType: 'distance',
+      distanceKm: Math.min((i + 1), run.distanceKm),
+      splitDistanceM,
+      splitDurationS,
+      paceSecKm,
+      avgHr: run.avgHr != null ? run.avgHr + hrOffset : null,
+      maxHr: run.avgHr != null ? run.avgHr + hrOffset + 8 : null,
+      avgCadence: run.avgCadence != null ? run.avgCadence + cadenceOffset : null,
+      avgPowerW: null,
+      avgStrideLengthM: run.avgStrideLengthM != null ? Math.round((run.avgStrideLengthM + cadenceOffset * 0.01) * 100) / 100 : null,
+      elevationGainM: null,
+    }
+  })
+}
+
+function buildMockHrZones(run: MockRun) {
+  const t = run.durationSeconds
+  const intent = run.workoutIntent.toLowerCase()
+  if (intent.includes('easy')) {
+    return [
+      { zoneNumber: 1, durationSeconds: Math.round(t * 0.05), pctOfRun: 5 },
+      { zoneNumber: 2, durationSeconds: Math.round(t * 0.65), pctOfRun: 65 },
+      { zoneNumber: 3, durationSeconds: Math.round(t * 0.30), pctOfRun: 30 },
+    ]
+  }
+  if (intent.includes('interval')) {
+    return [
+      { zoneNumber: 3, durationSeconds: Math.round(t * 0.10), pctOfRun: 10 },
+      { zoneNumber: 4, durationSeconds: Math.round(t * 0.50), pctOfRun: 50 },
+      { zoneNumber: 5, durationSeconds: Math.round(t * 0.40), pctOfRun: 40 },
+    ]
+  }
+  return [
+    { zoneNumber: 2, durationSeconds: Math.round(t * 0.10), pctOfRun: 10 },
+    { zoneNumber: 3, durationSeconds: Math.round(t * 0.30), pctOfRun: 30 },
+    { zoneNumber: 4, durationSeconds: Math.round(t * 0.60), pctOfRun: 60 },
+  ]
+}
+
+export function getMockRunDetail(runId: string) {
+  const run = mockRuns.find((r) => r.id === runId)
+  if (!run) throw new Error('Run not found')
+  const shoe = getShoeById(run.shoeId)
+
+  return {
+    run: {
+      id: run.id,
+      date: run.date,
+      activityType: run.activityType,
+      surface: 'road' as string | null,
+      distanceKm: run.distanceKm,
+      durationSeconds: run.durationSeconds,
+      avgPaceSecPerKm: run.avgPaceSecPerKm,
+      bestPaceSecPerKm: run.avgPaceSecPerKm - 15,
+      avgHr: run.avgHr,
+      maxHr: run.avgHr != null ? run.avgHr + 15 : null,
+      avgCadence: run.avgCadence,
+      avgPowerW: null as number | null,
+      avgStrideLengthM: run.avgStrideLengthM,
+      verticalOscillationCm: 9.2 as number | null,
+      verticalRatioPct: 7.8 as number | null,
+      avgGroundContactMs: 245 as number | null,
+      elevationGainM: 45 as number | null,
+      aerobicTe: 3.5 as number | null,
+      anaerobicTe: 0.5 as number | null,
+      staminaStartPct: 90 as number | null,
+      staminaEndPct: 65 as number | null,
+      workoutIntent: run.workoutIntent,
+      rpe: null as number | null,
+      notes: null as string | null,
+      garminActivityId: null as string | null,
+    },
+    shoe: shoe ? { brand: shoe.brand, model: shoe.model, variant: shoe.variant } : null,
+    coaching: run.coachingNote
+      ? {
+          effortLabel: run.coachingNote.effortLabel ?? 'Unknown',
+          intentMatch: 'matched',
+          hrReliability: 'reliable',
+          keyPositive: 'Consistent cadence throughout',
+          keyConcern: null as string | null,
+          recommendation: run.coachingNote.recommendation,
+        }
+      : null,
+    laps: buildMockLaps(run),
+    hrZones: buildMockHrZones(run),
+  }
+}
+
 export type RunsOverviewData = ReturnType<typeof getMockRunsOverview>
 export type ShoeDetailData = ReturnType<typeof getMockShoeDetail>
+export type RunDetailData = ReturnType<typeof getMockRunDetail>

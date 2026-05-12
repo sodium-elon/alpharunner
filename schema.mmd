@@ -1,0 +1,101 @@
+erDiagram
+    users {
+        uuid id PK
+        text email "nullable"
+        text display_name
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    shoes {
+        uuid id PK
+        uuid user_id FK "nullable"
+        text brand
+        text model
+        text variant "nullable"
+        text role "easy recovery daily tempo marathon speed trail unknown"
+        text category "nullable"
+        int stack_height_mm "nullable"
+        int weight_g "nullable"
+        int drop_mm "nullable"
+        numeric total_km "stored not computed from runs"
+        text status "active retired testing wishlist"
+        date purchased_date "nullable"
+        text notes "nullable"
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    runs {
+        uuid id PK
+        uuid user_id FK "nullable"
+        uuid shoe_id FK "nullable"
+        date date
+        text activity_type "outdoor treadmill trail track race"
+        text surface "nullable"
+        numeric treadmill_incline "nullable"
+        numeric distance_km
+        int duration_seconds
+        int avg_pace_sec_per_km
+        int best_pace_sec_per_km "nullable"
+        int avg_hr "nullable bpm"
+        int max_hr "nullable bpm"
+        text hr_source "chest_strap wrist unknown"
+        int avg_cadence "nullable spm"
+        int max_cadence "nullable"
+        int avg_power_w "nullable watts"
+        int max_power_w "nullable"
+        numeric avg_stride_length_m "nullable"
+        numeric vertical_ratio_pct "nullable"
+        numeric vertical_oscillation_cm "nullable"
+        int avg_ground_contact_ms "nullable"
+        int elevation_gain_m "nullable"
+        numeric aerobic_te "nullable 0-5 Garmin TE"
+        numeric anaerobic_te "nullable 0-5 Garmin TE"
+        int stamina_start_pct "nullable 0-100"
+        int stamina_end_pct "nullable 0-100"
+        text workout_intent "easy base steady tempo recovery long intervals race unknown"
+        int rpe "nullable 1-10"
+        text garmin_activity_id "nullable unique dedup key"
+        text notes "nullable"
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    hr_zone_distributions {
+        uuid id PK
+        uuid run_id FK
+        text zone_type "hr or power"
+        int zone_number "1-5"
+        int duration_seconds
+        numeric pct_of_run "0-100"
+    }
+    shoe_observations {
+        uuid id PK
+        uuid run_id FK
+        uuid shoe_id FK
+        text cadence_effect "up neutral down unknown"
+        text pace_effect "pushes_faster neutral easier_to_slow unknown"
+        text mechanics_quality "clean neutral sloppy unknown"
+        int comfort "nullable 1-5"
+        text terrain_fit "excellent good ok poor unknown"
+        text notes "nullable"
+        timestamptz created_at
+    }
+    coaching_notes {
+        uuid id PK
+        uuid run_id FK "unique - one note per run"
+        text effort_label "too_easy easy base steady tempo hard race_effort"
+        text intent_match "on_target harder_than_intended easier_than_intended unknown"
+        text hr_reliability "reliable questionable unreliable"
+        text key_positive "nullable"
+        text key_concern "nullable"
+        text recommendation "nullable"
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    users ||--o{ shoes : "owns"
+    users ||--o{ runs : "logs"
+    shoes ||--o{ runs : "used_in"
+    runs ||--o{ hr_zone_distributions : "zones"
+    runs ||--o| coaching_notes : "0-or-1 note"
+    runs ||--o{ shoe_observations : "observed"
+    shoes ||--o{ shoe_observations : "observed_in"

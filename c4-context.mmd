@@ -1,0 +1,14 @@
+C4Context
+    title AlphaRunner — System Context
+
+    Person(runner, "Runner (John)", "Single user. Views run history, shoe rotation, and coaching analysis.")
+
+    System(alpharunner, "AlphaRunner", "Personal running dashboard built with TanStack React Start. Tracks runs, shoes, HR zones, and coaching notes.")
+
+    System_Ext(garmin, "Garmin Connect", "Source of activity data. Exports activities identified by garmin_activity_id.")
+
+    SystemDb_Ext(postgres, "PostgreSQL 15", "Homebrew local instance. All app data lives in the alpharunner schema.")
+
+    Rel(runner, alpharunner, "Views dashboard, runs, shoe detail", "Browser")
+    Rel(garmin, alpharunner, "Imports activities via import-seed.json", "garmin_activity_id dedup key")
+    Rel(alpharunner, postgres, "Reads and writes", "Drizzle ORM · postgres.js · DATABASE_URL")

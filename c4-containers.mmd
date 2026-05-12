@@ -1,0 +1,19 @@
+C4Container
+    title AlphaRunner — Containers
+
+    Person(runner, "Runner (John)")
+
+    System_Boundary(sys, "AlphaRunner") {
+        Container(browser, "Browser Client", "React 19 · TanStack Router", "Hydrated SSR shell. Route components, Recharts trend charts, responsive tables. No direct DB access.")
+        Container(server, "Node Server", "Nitro · TanStack React Start", "Handles SSR and createServerFn RPC calls. Lazy-initialises Drizzle DB singleton on first request. Patches global fetch when MSW=true.")
+        ContainerDb(db, "PostgreSQL 15", "Drizzle ORM · postgres.js", "6 tables in alpharunner schema. UUID PKs via gen_random_uuid(). Numeric columns return as string from Drizzle — callers must cast to Number().")
+    }
+
+    System_Ext(garmin, "Garmin Connect", "Activity export source")
+    System_Ext(msw, "MSW Mock Layer", "Intercepts Node global fetch when MSW=true. Serves hardcoded dataset. Used in prod build — no DB required.")
+
+    Rel(runner, browser, "Uses", "localhost:3000")
+    Rel(browser, server, "SSR · createServerFn RPC", "HTTP")
+    Rel(server, db, "Query", "Drizzle ORM · DATABASE_URL · alpharunner schema")
+    Rel(garmin, server, "Activity import", "pnpm db:import-seed · import-seed.json")
+    Rel(server, msw, "Fetch intercepted when MSW=true", "Node global fetch patch")

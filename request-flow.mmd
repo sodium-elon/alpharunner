@@ -1,0 +1,26 @@
+flowchart TD
+    Browser["Browser\nReact client"]
+    Router["TanStack Router\nroute loader()"]
+    ServerFn["createServerFn\nserver-only execution"]
+    mockCheck{{"isMockMode?\nMSW env var"}}
+    getDb["getDb()\nsingleton connection"]
+    Drizzle["Drizzle ORM\ntype-safe query builder"]
+    PG[("PostgreSQL 15\nalpharunner schema\nlocalhost:5432")]
+    mockFetch["fetch localhost/api/*"]
+    MSWHandler["MSW Node handler\npatches global fetch"]
+    MockData["src/mocks/data.ts\nhardcoded 3 shoes 6 runs"]
+
+    Browser -->|"navigate or link click"| Router
+    Router -->|"SSR: runs on server\nCSR nav: RPC call"| ServerFn
+    ServerFn --> mockCheck
+    mockCheck -->|"false"| getDb
+    mockCheck -->|"true"| mockFetch
+    getDb --> Drizzle
+    Drizzle -->|"SQL"| PG
+    PG -->|"rows — numerics\nreturn as string"| Drizzle
+    Drizzle --> ServerFn
+    mockFetch --> MSWHandler
+    MSWHandler --> MockData
+    MockData --> ServerFn
+    ServerFn -->|"serialized JSON"| Router
+    Router -->|"Route.useLoaderData()\nfully typed"| Browser

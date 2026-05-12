@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as RunsRouteImport } from './routes/runs'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ShoesShoeIdRouteImport } from './routes/shoes.$shoeId'
+import { Route as RunRunIdRouteImport } from './routes/run.$runId'
 
 const RunsRoute = RunsRouteImport.update({
   id: '/runs',
@@ -28,34 +29,43 @@ const ShoesShoeIdRoute = ShoesShoeIdRouteImport.update({
   path: '/shoes/$shoeId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RunRunIdRoute = RunRunIdRouteImport.update({
+  id: '/run/$runId',
+  path: '/run/$runId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/runs': typeof RunsRoute
+  '/run/$runId': typeof RunRunIdRoute
   '/shoes/$shoeId': typeof ShoesShoeIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/runs': typeof RunsRoute
+  '/run/$runId': typeof RunRunIdRoute
   '/shoes/$shoeId': typeof ShoesShoeIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/runs': typeof RunsRoute
+  '/run/$runId': typeof RunRunIdRoute
   '/shoes/$shoeId': typeof ShoesShoeIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/runs' | '/shoes/$shoeId'
+  fullPaths: '/' | '/runs' | '/run/$runId' | '/shoes/$shoeId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/runs' | '/shoes/$shoeId'
-  id: '__root__' | '/' | '/runs' | '/shoes/$shoeId'
+  to: '/' | '/runs' | '/run/$runId' | '/shoes/$shoeId'
+  id: '__root__' | '/' | '/runs' | '/run/$runId' | '/shoes/$shoeId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   RunsRoute: typeof RunsRoute
+  RunRunIdRoute: typeof RunRunIdRoute
   ShoesShoeIdRoute: typeof ShoesShoeIdRoute
 }
 
@@ -82,12 +92,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShoesShoeIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/run/$runId': {
+      id: '/run/$runId'
+      path: '/run/$runId'
+      fullPath: '/run/$runId'
+      preLoaderRoute: typeof RunRunIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   RunsRoute: RunsRoute,
+  RunRunIdRoute: RunRunIdRoute,
   ShoesShoeIdRoute: ShoesShoeIdRoute,
 }
 export const routeTree = rootRouteImport
