@@ -27,6 +27,8 @@
     "db:studio": "dotenv -e ../env-profiles/local.env -- drizzle-kit studio",
     "db:studio:prod": "dotenv -e ../env-profiles/prod.env -- drizzle-kit studio",
     "db:import-seed": "dotenv -e ../env-profiles/local.env -- tsx src/db/import-seed.ts",
+    "db:sync-garmin": "dotenv -e ../env-profiles/local.env -- tsx scripts/garmin/sync.ts",
+    "db:sync-garmin:prod": "dotenv -e ../env-profiles/prod.env -- tsx scripts/garmin/sync.ts",
     "test": "vitest",
     "test:run": "vitest run"
   },
