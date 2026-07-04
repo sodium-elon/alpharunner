@@ -152,12 +152,13 @@ function Home() {
   const data = Route.useLoaderData()
 
   return (
-    <main className="p-6 space-y-8 max-w-6xl mx-auto">
+    <main className="ar-shell">
       <section className="space-y-2">
-        <h1 className="text-3xl font-bold">
-          AlphaRunner <span className="text-lg font-medium text-gray-500 dark:text-gray-400">({data.runtimePort})</span>
+        <p className="ar-page-kicker">Running data control center</p>
+        <h1 className="ar-page-title">
+          AlphaRunner <span className="align-middle font-mono text-[length:var(--text-xs)] font-medium tracking-normal text-muted-foreground">({data.runtimePort})</span>
         </h1>
-        <p className="text-gray-600 dark:text-gray-400 max-w-3xl">
+        <p className="ar-page-copy max-w-3xl">
           Live dashboard for {data.user?.displayName ?? 'your running data'}, backed by the AlphaRunner database.
         </p>
       </section>
@@ -171,20 +172,20 @@ function Home() {
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[2fr_1fr]">
-        <div className="rounded-lg border bg-white/60 dark:bg-gray-900/60 p-5 shadow-sm">
+        <div className="ar-card ar-card-pad">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold">Recent runs</h2>
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+              <h2 className="text-[length:var(--text-card-title)] font-heading font-bold">Recent runs</h2>
+              <p className="ar-helper mt-1">
                 Latest seeded runs with shoe and coaching context.
               </p>
             </div>
           </div>
 
-          <div className="@container mt-4 overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="ar-table-wrap">
+            <table className="ar-table">
               <thead>
-                <tr className="border-b text-left text-gray-500 dark:text-gray-400">
+                <tr className="ar-table-head">
                   <th className="py-2 pr-4 font-medium">Date</th>
                   <th className="py-2 pr-4 font-medium hidden @[26rem]:table-cell">Type</th>
                   <th className="py-2 pr-4 font-medium">Distance</th>
@@ -200,12 +201,12 @@ function Home() {
                     <td className="py-3 pr-4 whitespace-nowrap text-xs @[26rem]:text-sm">{run.date}</td>
                     <td className="py-3 pr-4 hidden @[26rem]:table-cell">
                       <div className="font-medium">{run.activityType}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">{run.workoutIntent}</div>
+                      <div className="ar-helper">{run.workoutIntent}</div>
                     </td>
                     <td className="py-3 pr-4 whitespace-nowrap text-xs @[26rem]:text-sm">{run.distanceKm.toFixed(2)} km</td>
                     <td className="py-3 pr-4 whitespace-nowrap text-xs @[26rem]:text-sm">
                       <div>{formatPace(run.avgPaceSecPerKm)}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 hidden @[26rem]:block">{formatDuration(run.durationSeconds)}</div>
+                      <div className="ar-helper hidden @[26rem]:block">{formatDuration(run.durationSeconds)}</div>
                     </td>
                     <td className="py-3 pr-4 hidden @[26rem]:table-cell">
                       {run.shoe ? (
@@ -217,7 +218,7 @@ function Home() {
                       {run.coachingNote ? (
                         <div>
                           <div className="font-medium">{run.coachingNote.effortLabel}</div>
-                          <div className="text-xs text-gray-600 dark:text-gray-400">
+                          <div className="ar-helper">
                             {run.coachingNote.recommendation ?? 'No recommendation saved'}
                           </div>
                         </div>
@@ -230,15 +231,15 @@ function Home() {
           </div>
         </div>
 
-        <div className="rounded-lg border bg-white/60 dark:bg-gray-900/60 p-5 shadow-sm">
-          <h2 className="text-lg font-semibold">Shoe performance averages</h2>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+        <div className="ar-card ar-card-pad">
+          <h2 className="text-[length:var(--text-card-title)] font-heading font-bold">Shoe performance averages</h2>
+          <p className="ar-helper mt-1">
             Mileage and average run metrics across all runs logged in each shoe.
           </p>
-          <div className="@container mt-4 overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="ar-table-wrap">
+            <table className="ar-table">
               <thead>
-                <tr className="border-b text-left text-gray-500 dark:text-gray-400">
+                <tr className="ar-table-head">
                   <th className="py-2 pr-4 font-medium">Shoe</th>
                   <th className="py-2 pr-4 font-medium">Dist</th>
                   <th className="py-2 pr-4 font-medium hidden @[18rem]:table-cell">Runs</th>
@@ -254,11 +255,11 @@ function Home() {
                       <Link
                         to="/shoes/$shoeId"
                         params={{ shoeId: shoe.id }}
-                        className="font-medium text-blue-600 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+                        className="ar-link font-medium"
                       >
                         <ShoeNameInline brand={shoe.brand} model={shoe.model} variant={shoe.variant} textClassName="font-medium" />
                       </Link>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">{shoe.role} • {shoe.status}</div>
+                      <div className="ar-helper">{shoe.role} • {shoe.status}</div>
                     </td>
                     <td className="py-3 pr-4 whitespace-nowrap">{shoe.totalKm.toFixed(1)} km</td>
                     <td className="py-3 pr-4 whitespace-nowrap hidden @[18rem]:table-cell">{shoe.runCount}</td>
@@ -289,9 +290,9 @@ function StatCard({
 }) {
   const content = (
     <>
-      <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400">{label}</h2>
-      <div className="mt-2 text-2xl font-bold">{value}</div>
-      <p className="mt-2 text-xs text-gray-600 dark:text-gray-400">{helper}</p>
+      <h2 className="ar-label">{label}</h2>
+      <div className="ar-stat-value mt-2">{value}</div>
+      <p className="ar-helper mt-2">{helper}</p>
     </>
   )
 
@@ -299,12 +300,12 @@ function StatCard({
     return (
       <Link
         to={to}
-        className="block rounded-lg border bg-white/60 p-5 shadow-sm transition hover:border-blue-300 hover:bg-white/80 dark:bg-gray-900/60 dark:hover:border-blue-700 dark:hover:bg-gray-900/80"
+        className="ar-card ar-card-pad block transition hover:border-accent hover:bg-card/90"
       >
         {content}
       </Link>
     )
   }
 
-  return <div className="rounded-lg border bg-white/60 dark:bg-gray-900/60 p-5 shadow-sm">{content}</div>
+  return <div className="ar-card ar-card-pad">{content}</div>
 }

@@ -121,17 +121,17 @@ function RunDetailPage() {
   const { run, shoe, laps, hrZones, coaching } = Route.useLoaderData()
 
   return (
-    <main className="p-6 space-y-8 max-w-6xl mx-auto">
+    <main className="ar-shell">
       <section className="space-y-3">
         <Link
           to="/runs"
-          className="inline-flex items-center text-sm text-blue-600 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+          className="ar-back-link"
         >
           ← Back to runs
         </Link>
         <div>
-          <h1 className="text-3xl font-bold">{run.date}</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+          <h1 className="ar-page-title">{run.date}</h1>
+          <p className="ar-helper mt-1">
             {run.activityType}
             {run.surface ? ` · ${run.surface}` : ''}
             {run.workoutIntent === 'unknown' ? '' : ` · ${run.workoutIntent}`}
@@ -158,9 +158,9 @@ function RunDetailPage() {
       </section>
 
       {laps.length > 0 && (
-        <section className="rounded-lg border bg-white/60 dark:bg-gray-900/60 p-5 shadow-sm">
-          <h2 className="text-lg font-semibold">Lap metrics</h2>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+        <section className="ar-card ar-card-pad">
+          <h2 className="text-[length:var(--text-card-title)] font-heading font-bold">Lap metrics</h2>
+          <p className="ar-helper mt-1">
             Pace, HR, and cadence per lap plotted against cumulative distance.
           </p>
           <div className="mt-6 h-80 w-full">
@@ -170,9 +170,9 @@ function RunDetailPage() {
       )}
 
       {hrZones.length > 0 && (
-        <section className="rounded-lg border bg-white/60 dark:bg-gray-900/60 p-5 shadow-sm">
-          <h2 className="text-lg font-semibold">HR zone distribution</h2>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+        <section className="ar-card ar-card-pad">
+          <h2 className="text-[length:var(--text-card-title)] font-heading font-bold">HR zone distribution</h2>
+          <p className="ar-helper mt-1">
             Time spent in each Garmin heart rate zone.
           </p>
           <div className="mt-6 h-60 w-full">
@@ -182,36 +182,36 @@ function RunDetailPage() {
       )}
 
       {coaching && (
-        <section className="rounded-lg border bg-white/60 dark:bg-gray-900/60 p-5 shadow-sm">
-          <h2 className="text-lg font-semibold">Coaching analysis</h2>
+        <section className="ar-card ar-card-pad">
+          <h2 className="text-[length:var(--text-card-title)] font-heading font-bold">Coaching analysis</h2>
           <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
             <div className="flex gap-2">
-              <dt className="w-32 shrink-0 text-gray-500">Effort</dt>
+              <dt className="w-32 shrink-0 text-muted-foreground">Effort</dt>
               <dd className="font-medium">{coaching.effortLabel}</dd>
             </div>
             <div className="flex gap-2">
-              <dt className="w-32 shrink-0 text-gray-500">Intent match</dt>
+              <dt className="w-32 shrink-0 text-muted-foreground">Intent match</dt>
               <dd>{coaching.intentMatch}</dd>
             </div>
             <div className="flex gap-2">
-              <dt className="w-32 shrink-0 text-gray-500">HR reliability</dt>
+              <dt className="w-32 shrink-0 text-muted-foreground">HR reliability</dt>
               <dd>{coaching.hrReliability}</dd>
             </div>
             {coaching.keyPositive && (
               <div className="flex gap-2 sm:col-span-2">
-                <dt className="w-32 shrink-0 text-gray-500">Positive</dt>
+                <dt className="w-32 shrink-0 text-muted-foreground">Positive</dt>
                 <dd>{coaching.keyPositive}</dd>
               </div>
             )}
             {coaching.keyConcern && (
               <div className="flex gap-2 sm:col-span-2">
-                <dt className="w-32 shrink-0 text-gray-500">Concern</dt>
+                <dt className="w-32 shrink-0 text-muted-foreground">Concern</dt>
                 <dd>{coaching.keyConcern}</dd>
               </div>
             )}
             {coaching.recommendation && (
               <div className="flex gap-2 sm:col-span-2">
-                <dt className="w-32 shrink-0 text-gray-500">Recommendation</dt>
+                <dt className="w-32 shrink-0 text-muted-foreground">Recommendation</dt>
                 <dd>{coaching.recommendation}</dd>
               </div>
             )}
@@ -220,12 +220,12 @@ function RunDetailPage() {
       )}
 
       {laps.length > 0 && (
-        <section className="rounded-lg border bg-white/60 dark:bg-gray-900/60 p-5 shadow-sm">
-          <h2 className="text-lg font-semibold">Lap breakdown</h2>
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full text-sm">
+        <section className="ar-card ar-card-pad">
+          <h2 className="text-[length:var(--text-card-title)] font-heading font-bold">Lap breakdown</h2>
+          <div className="ar-table-wrap">
+            <table className="ar-table min-w-full">
               <thead>
-                <tr className="border-b text-left text-gray-500 dark:text-gray-400">
+                <tr className="ar-table-head">
                   <th className="py-2 pr-4 font-medium">#</th>
                   <th className="py-2 pr-4 font-medium">Dist</th>
                   <th className="py-2 pr-4 font-medium">Time</th>
@@ -266,9 +266,9 @@ function RunDetailPage() {
 
 function StatCard({ label, value }: { readonly label: string; readonly value: string }) {
   return (
-    <div className="rounded-lg border bg-white/60 dark:bg-gray-900/60 p-4 shadow-sm">
-      <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{label}</p>
-      <p className="mt-1 text-xl font-bold">{value}</p>
+    <div className="ar-card p-4">
+      <p className="ar-label">{label}</p>
+      <p className="ar-stat-value-sm mt-1">{value}</p>
     </div>
   )
 }
@@ -311,7 +311,7 @@ function LapChart({ data }: { readonly data: LapPoint[] }) {
 
   if (!chartLib) {
     return (
-      <div className="flex h-full items-center justify-center rounded-md border border-dashed text-sm text-gray-500 dark:text-gray-400">
+      <div className="ar-empty">
         Loading chart…
       </div>
     )
@@ -431,7 +431,7 @@ function HrZoneChart({ data }: { readonly data: { zoneNumber: number; durationSe
 
   if (!chartLib) {
     return (
-      <div className="flex h-full items-center justify-center rounded-md border border-dashed text-sm text-gray-500 dark:text-gray-400">
+      <div className="ar-empty">
         Loading chart…
       </div>
     )

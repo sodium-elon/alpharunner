@@ -14,6 +14,8 @@ import { NotFound } from '~/components/NotFound'
 import appCss from '~/app.css?url'
 import { seo } from '~/utils/seo'
 
+const appCssHref = import.meta.env.DEV ? '/src/app.css?direct' : appCss
+
 const getRuntimeInfo = createServerFn({ method: 'GET' }).handler(async () => ({
   runtimePort: process.env.PORT ?? 'unknown',
 }))
@@ -36,7 +38,7 @@ export const Route = createRootRoute({
           description: 'Dashboard and control center for John\'s running data.',
         }),
       ],
-      links: [{ rel: 'stylesheet', href: appCss }],
+      links: [{ rel: 'stylesheet', href: appCssHref }],
     }
   },
   errorComponent: DefaultCatchBoundary,
@@ -58,20 +60,35 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <div className="p-4 flex items-center gap-4 text-lg border-b border-gray-200 dark:border-gray-800">
-          <div className="font-semibold">
-            AlphaRunner <span className="text-sm font-medium text-gray-500 dark:text-gray-400">({runtimePort})</span>
+        <header className="ar-topbar">
+          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
+            <div className="flex items-baseline gap-3">
+              <div className="ar-wordmark">AlphaRunner</div>
+              <span className="ar-label">Port {runtimePort}</span>
+            </div>
+            <nav className="flex items-center gap-2">
+              <Link
+                to="/"
+                className="ar-nav-link"
+                activeProps={{
+                  className: 'ar-nav-link ar-nav-link-active',
+                }}
+                activeOptions={{ exact: true }}
+              >
+                Dashboard
+              </Link>
+              <Link
+                to="/runs"
+                className="ar-nav-link"
+                activeProps={{
+                  className: 'ar-nav-link ar-nav-link-active',
+                }}
+              >
+                Runs
+              </Link>
+            </nav>
           </div>
-          <Link
-            to="/"
-            activeProps={{
-              className: 'font-bold',
-            }}
-            activeOptions={{ exact: true }}
-          >
-            Dashboard
-          </Link>
-        </div>
+        </header>
         {children}
         <TanStackRouterDevtools position="bottom-right" />
         <Scripts />
