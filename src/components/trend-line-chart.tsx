@@ -119,7 +119,7 @@ export function TrendLineChart({ data }: { data: TrendChartPoint[] }) {
 
   if (!chartLib) {
     return (
-      <div className="flex h-full items-center justify-center rounded-md border border-dashed text-sm text-gray-500 dark:text-gray-400">
+      <div className="ar-empty">
         Loading chart…
       </div>
     )

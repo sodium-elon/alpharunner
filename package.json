@@ -7,8 +7,8 @@
   "packageManager": "pnpm@10.33.0",
   "scripts": {
     "predev": "lsof -ti:3000 | xargs kill -9 2>/dev/null || true",
-    "dev": "dotenv -e ../env-profiles/local.env -- vite dev --strictPort",
-    "dev:msw": "dotenv -e ../env-profiles/local.env -- sh -c 'MSW=true vite dev --strictPort'",
+    "dev": "dotenv -e ../env-profiles/local.env -- vite dev --host 0.0.0.0 --strictPort",
+    "dev:msw": "dotenv -e ../env-profiles/local.env -- sh -c 'MSW=true vite dev --host 0.0.0.0 --strictPort'",
     "dev:prod": "dotenv -e ../env-profiles/prod.env -- vite dev --strictPort",
     "build": "pnpm build:local",
     "build:local": "dotenv -e ../env-profiles/local.env -- vite build",
