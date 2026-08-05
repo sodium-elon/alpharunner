@@ -1,4 +1,4 @@
-import { aggregateTrendPoints, formatTrendShortDate, type TrendChartPoint } from '~/components/trend-line-chart'
+import { formatTrendShortDate, type TrendChartPoint } from '~/components/trend-line-chart'
 
 export function isMockMode() {
   return process.env.MSW === 'true'
@@ -12,7 +12,6 @@ type MockShoe = {
   role: string
   status: string
   category: string | null
-  totalKm: number
 }
 
 type MockRun = {
@@ -86,7 +85,6 @@ const mockShoes: MockShoe[] = [
     role: 'tempo',
     status: 'active',
     category: 'super trainer',
-    totalKm: 33.4,
   },
   {
     id: 'mock-shoe-2',
@@ -96,7 +94,6 @@ const mockShoes: MockShoe[] = [
     role: 'daily',
     status: 'active',
     category: 'daily trainer',
-    totalKm: 20.9,
   },
   {
     id: 'mock-shoe-3',
@@ -106,111 +103,100 @@ const mockShoes: MockShoe[] = [
     role: 'workout',
     status: 'active',
     category: 'speed trainer',
-    totalKm: 18.6,
   },
 ]
 
-const mockRuns: MockRun[] = [
-  {
-    id: 'mock-run-1',
-    date: '2026-04-20',
-    activityType: 'Run',
-    distanceKm: 10.1,
-    durationSeconds: 3120,
-    avgPaceSecPerKm: 309,
-    avgCadence: 170,
-    avgStrideLengthM: 1.16,
-    avgHr: 145,
-    workoutIntent: 'Easy aerobic',
-    shoeId: 'mock-shoe-2',
-    coachingNote: null,
-  },
-  {
-    id: 'mock-run-2',
-    date: '2026-04-23',
-    activityType: 'Run',
-    distanceKm: 10.8,
-    durationSeconds: 3002,
-    avgPaceSecPerKm: 278,
-    avgCadence: 173,
-    avgStrideLengthM: 1.25,
-    avgHr: 149,
-    workoutIntent: 'Tempo',
-    shoeId: 'mock-shoe-1',
-    coachingNote: {
-      effortLabel: 'Controlled',
-      recommendation: 'Hold cadence steady through the middle block.',
-    },
-  },
-  {
-    id: 'mock-run-3',
-    date: '2026-04-26',
-    activityType: 'Run',
-    distanceKm: 8.2,
-    durationSeconds: 2601,
-    avgPaceSecPerKm: 317,
-    avgCadence: 168,
-    avgStrideLengthM: 1.11,
-    avgHr: 141,
-    workoutIntent: 'Easy aerobic',
-    shoeId: 'mock-shoe-2',
-    coachingNote: null,
-  },
-  {
-    id: 'mock-run-4',
-    date: '2026-04-28',
-    activityType: 'Run',
-    distanceKm: 12.5,
-    durationSeconds: 3480,
-    avgPaceSecPerKm: 278,
-    avgCadence: 174,
-    avgStrideLengthM: 1.24,
-    avgHr: 149,
-    workoutIntent: 'Progression',
-    shoeId: 'mock-shoe-1',
-    coachingNote: {
-      effortLabel: 'Steady',
-      recommendation: 'Keep final 3km controlled.',
-    },
-  },
-  {
-    id: 'mock-run-5',
-    date: '2026-04-30',
-    activityType: 'Run',
-    distanceKm: 12.7,
-    durationSeconds: 3475,
-    avgPaceSecPerKm: 274,
-    avgCadence: 172,
-    avgStrideLengthM: 1.27,
-    avgHr: 151,
-    workoutIntent: 'Threshold',
-    shoeId: 'mock-shoe-1',
-    coachingNote: {
-      effortLabel: 'Strong',
-      recommendation: 'Recover easy tomorrow.',
-    },
-  },
-  {
-    id: 'mock-run-6',
-    date: '2026-05-02',
-    activityType: 'Run',
-    distanceKm: 9.4,
-    durationSeconds: 2504,
-    avgPaceSecPerKm: 266,
-    avgCadence: 176,
-    avgStrideLengthM: 1.29,
-    avgHr: 154,
-    workoutIntent: 'Intervals',
-    shoeId: 'mock-shoe-3',
-    coachingNote: {
-      effortLabel: 'Snappy',
-      recommendation: 'Good pop off the ground — keep recoveries relaxed.',
-    },
-  },
+/**
+ * Mock runs are generated rather than hand-written so mock mode covers several
+ * months and enough runs per shoe to exercise the month pager on /runs and the
+ * 20-run windows on the shoe detail page.
+ */
+const TRAINING_PLAN: ReadonlyArray<{ intent: string; shoeId: string }> = [
+  { intent: 'Easy aerobic', shoeId: 'mock-shoe-2' },
+  { intent: 'Tempo', shoeId: 'mock-shoe-1' },
+  { intent: 'Easy aerobic', shoeId: 'mock-shoe-2' },
+  { intent: 'Intervals', shoeId: 'mock-shoe-3' },
+  { intent: 'Long run', shoeId: 'mock-shoe-2' },
+  { intent: 'Progression', shoeId: 'mock-shoe-1' },
+  { intent: 'Threshold', shoeId: 'mock-shoe-1' },
 ]
+
+const COACHING_NOTES: ReadonlyArray<{ effortLabel: string; recommendation: string }> = [
+  { effortLabel: 'Controlled', recommendation: 'Hold cadence steady through the middle block.' },
+  { effortLabel: 'Strong', recommendation: 'Recover easy tomorrow.' },
+  { effortLabel: 'Snappy', recommendation: 'Good pop off the ground — keep recoveries relaxed.' },
+  { effortLabel: 'Steady', recommendation: 'Keep the final 3km controlled.' },
+]
+
+const DAY_MS = 86_400_000
+const BLOCK_START_MS = Date.UTC(2026, 2, 4) // 04 Mar 2026
+const BLOCK_END_MS = Date.UTC(2026, 7, 4) // 04 Aug 2026
+
+/** Deterministic 32-bit LCG — mock data must not change between renders. */
+function createRandom(seed: number) {
+  let state = seed
+
+  return () => {
+    state = (state * 1664525 + 1013904223) % 4294967296
+    return state / 4294967296
+  }
+}
+
+function round(value: number, decimals: number) {
+  const factor = 10 ** decimals
+  return Math.round(value * factor) / factor
+}
+
+function buildMockRuns(): MockRun[] {
+  const random = createRandom(20260804)
+  const built: MockRun[] = []
+
+  for (let index = 0, ms = BLOCK_START_MS; ms <= BLOCK_END_MS; index += 1, ms += 2 * DAY_MS) {
+    const plan = TRAINING_PLAN[index % TRAINING_PLAN.length]!
+    const isLong = plan.intent === 'Long run'
+    const isHard = plan.intent === 'Intervals' || plan.intent === 'Threshold' || plan.intent === 'Tempo'
+    // Gentle season-long improvement so the trend lines have a direction.
+    const progress = (ms - BLOCK_START_MS) / (BLOCK_END_MS - BLOCK_START_MS)
+
+    const avgPaceSecPerKm = Math.round(
+      (isHard ? 268 : isLong ? 322 : 306) - progress * 15 + (random() - 0.5) * 12,
+    )
+    const distanceKm = round(isLong ? 18 + random() * 6 : isHard ? 9 + random() * 3 : 8 + random() * 4, 1)
+    const avgCadence = Math.round((isHard ? 176 : 169) + progress * 3 + (random() - 0.5) * 5)
+    const avgHr = Math.round((isHard ? 158 : isLong ? 147 : 143) + (random() - 0.5) * 8)
+
+    built.push({
+      id: `mock-run-${index + 1}`,
+      date: new Date(ms).toISOString().slice(0, 10),
+      activityType: 'Run',
+      distanceKm,
+      durationSeconds: Math.round(avgPaceSecPerKm * distanceKm),
+      avgPaceSecPerKm,
+      avgCadence,
+      // Stride length follows from speed and cadence: (1000 / pace) / (cadence / 60).
+      avgStrideLengthM: round(60000 / (avgPaceSecPerKm * avgCadence), 2),
+      avgHr,
+      workoutIntent: plan.intent,
+      shoeId: plan.shoeId,
+      coachingNote: isHard ? COACHING_NOTES[index % COACHING_NOTES.length]! : null,
+    })
+  }
+
+  return built
+}
+
+const mockRuns: MockRun[] = buildMockRuns()
 
 function getShoeById(shoeId: string | null) {
   return shoeId ? mockShoes.find((shoe) => shoe.id === shoeId) ?? null : null
+}
+
+/** Lifetime distance is derived from the generated runs so the two never disagree. */
+function getShoeTotalKm(shoeId: string) {
+  return round(
+    mockRuns.filter((run) => run.shoeId === shoeId).reduce((sum, run) => sum + run.distanceKm, 0),
+    1,
+  )
 }
 
 function toTrendPoint(run: MockRun): TrendChartPoint {
@@ -278,7 +264,7 @@ function buildMockDashboardData(runtimePort?: string): DashboardData {
       model: shoe.model,
       variant: shoe.variant,
       role: shoe.role,
-      totalKm: shoe.totalKm,
+      totalKm: getShoeTotalKm(shoe.id),
       runCount: shoeRuns.length,
       avgCadence: avgCadenceRuns.length
         ? avgCadenceRuns.reduce((sum, run) => sum + (run.avgCadence ?? 0), 0) / avgCadenceRuns.length
@@ -304,7 +290,6 @@ export function getMockRunsOverview() {
 
   return {
     chartData,
-    aggregatedChartData: aggregateTrendPoints(chartData),
     runTableRows: mockRuns.map((run) => {
       const shoe = getShoeById(run.shoeId)
 
@@ -354,9 +339,8 @@ export function getMockShoeDetail(shoeId: string) {
     .map(toTrendPoint)
 
   return {
-    shoe,
+    shoe: { ...shoe, totalKm: getShoeTotalKm(shoe.id) },
     chartData,
-    aggregatedChartData: aggregateTrendPoints(chartData),
   }
 }
 

@@ -326,6 +326,16 @@
     transition: background-color var(--duration-fast) var(--ease-out);
   }
 
+  .ar-row-link {
+    @apply cursor-pointer;
+  }
+
+  /* Keyboard users reach the row through the link in its first cell — mirror
+     the pointer hover state so the focused row reads as the active one. */
+  .ar-row-link:has(a:focus-visible) {
+    @apply bg-muted/60;
+  }
+
   .ar-badge {
     @apply inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-1 font-mono text-[length:var(--text-2xs)] uppercase tracking-[var(--tracking-caps)] text-secondary-foreground;
   }
