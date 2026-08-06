@@ -4,6 +4,7 @@ import { desc, sql } from 'drizzle-orm'
 import { coachingNotes, getDb, hrZoneDistributions, runs, shoes } from '~/db'
 import { isMockMode, type DashboardData } from '~/mocks/data'
 import { getMockBaseUrl } from '~/mocks/base-url'
+import { RunDateCell, RunRowChevronCell, RunTableRow } from '~/components/run-table-row'
 import { ShoeNameInline } from '~/components/shoe-name'
 
 const getDashboardData = createServerFn({ method: 'GET' }).handler(async () => {
@@ -173,13 +174,16 @@ function Home() {
 
       <section className="grid gap-6 xl:grid-cols-[2fr_1fr]">
         <div className="ar-card ar-card-pad">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className="text-[length:var(--text-card-title)] font-heading font-bold">Recent runs</h2>
               <p className="ar-helper mt-1">
-                Latest seeded runs with shoe and coaching context.
+                Latest runs with shoe and coaching context. Select a row to open the run.
               </p>
             </div>
+            <Link to="/runs" className="ar-back-link shrink-0">
+              All runs →
+            </Link>
           </div>
 
           <div className="ar-table-wrap">
@@ -193,12 +197,15 @@ function Home() {
                   <th className="py-2 pr-4 font-medium hidden @[26rem]:table-cell">Shoe</th>
                   <th className="py-2 pr-4 font-medium hidden @[40rem]:table-cell">Avg HR</th>
                   <th className="py-2 pr-4 font-medium hidden @[52rem]:table-cell">Coaching</th>
+                  <th className="w-4 pr-0">
+                    <span className="sr-only">Open run</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {data.recentRuns.map((run) => (
-                  <tr key={run.id} className="border-b last:border-0 align-top">
-                    <td className="py-3 pr-4 whitespace-nowrap text-xs @[26rem]:text-sm">{run.date}</td>
+                  <RunTableRow key={run.id} runId={run.id} className="border-b last:border-0 align-top">
+                    <RunDateCell runId={run.id} date={run.date} />
                     <td className="py-3 pr-4 hidden @[26rem]:table-cell">
                       <div className="font-medium">{run.activityType}</div>
                       <div className="ar-helper">{run.workoutIntent}</div>
@@ -224,7 +231,8 @@ function Home() {
                         </div>
                       ) : '—'}
                     </td>
-                  </tr>
+                    <RunRowChevronCell />
+                  </RunTableRow>
                 ))}
               </tbody>
             </table>

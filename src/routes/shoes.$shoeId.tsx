@@ -1,11 +1,24 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
+import * as React from 'react'
 import { asc, eq, sql } from 'drizzle-orm'
-import { TrendLineChart, aggregateTrendPoints, formatTrendPace, formatTrendShortDate, type TrendChartPoint } from '~/components/trend-line-chart'
+import {
+  TrendLineChart,
+  aggregateTrendPoints,
+  formatTrendPace,
+  formatTrendShortDate,
+  type TrendChartPoint,
+} from '~/components/trend-line-chart'
+import { RunHistoryTable } from '~/components/run-history-table'
+import { WindowPager, WindowPagerSummary } from '~/components/window-pager'
 import { getDb, runs, shoes } from '~/db'
+import { resolveRunWindow, summarizeRuns, windowRunsByCount } from '~/lib/run-windows'
 import { isMockMode, type ShoeDetailData } from '~/mocks/data'
 import { getMockBaseUrl } from '~/mocks/base-url'
 import { ShoeNameInline, formatShoeName } from '~/components/shoe-name'
+
+/** How many runs the shoe detail page shows in one window. */
+const RUNS_PER_WINDOW = 20
 
 const getShoeDetail = createServerFn({ method: 'GET' })
   .inputValidator((shoeId: string) => shoeId)
@@ -75,35 +88,61 @@ const getShoeDetail = createServerFn({ method: 'GET' })
       totalKm: Number(shoe.totalKm),
     },
     chartData,
-    aggregatedChartData: aggregateTrendPoints(chartData),
   }
 })
 
+type ShoeDetailSearch = {
+  /** Zero-based run window, counting back from the most recent run. */
+  readonly page?: number
+}
+
+function parseWindowIndex(value: unknown): number | undefined {
+  const parsed = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : Number.NaN
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : undefined
+}
+
 export const Route = createFileRoute('/shoes/$shoeId')({
+  validateSearch: (search: Record<string, unknown>): ShoeDetailSearch => {
+    const page = parseWindowIndex(search.page)
+    return page == null || page === 0 ? {} : { page }
+  },
   loader: ({ params }) => getShoeDetail({ data: params.shoeId }),
   component: ShoeDetailPage,
 })
 
 function ShoeDetailPage() {
   const data = Route.useLoaderData()
+  const { page } = Route.useSearch()
+  const navigate = Route.useNavigate()
   const shoeName = formatShoeName(data.shoe)
+
+  // Every run for this shoe arrives in one payload; windows of 20 are sliced on
+  // the client so stepping through the shoe's history is instant.
+  const runWindows = React.useMemo(() => windowRunsByCount(data.chartData, RUNS_PER_WINDOW), [data.chartData])
+  const activeWindow = resolveRunWindow(runWindows, page == null ? undefined : String(page))
+  const activeIndex = activeWindow ? runWindows.indexOf(activeWindow) : -1
+  const windowRuns = activeWindow?.runs ?? []
+  const windowSummary = React.useMemo(() => summarizeRuns(windowRuns), [windowRuns])
+  const overallSummary = React.useMemo(() => summarizeRuns(data.chartData), [data.chartData])
+  const windowChartPoints = React.useMemo(() => aggregateTrendPoints([...windowRuns]), [windowRuns])
+  const historyRows = React.useMemo(() => [...windowRuns].reverse(), [windowRuns])
+
+  const rangeStart = activeIndex * RUNS_PER_WINDOW + 1
+  const rangeEnd = rangeStart + windowRuns.length - 1
+  const rangeCopy =
+    activeWindow == null
+      ? ''
+      : `Runs ${rangeStart}–${rangeEnd} of ${data.chartData.length}, counting back from the most recent.`
 
   return (
     <main className="ar-shell">
       <section className="space-y-3">
-        <Link
-          to="/"
-          className="ar-back-link"
-        >
+        <Link to="/" className="ar-back-link">
           ← Back to dashboard
         </Link>
         <div>
           <h1 className="ar-page-title">
-            <ShoeNameInline
-              brand={data.shoe.brand}
-              model={data.shoe.model}
-              variant={data.shoe.variant}
-            />
+            <ShoeNameInline brand={data.shoe.brand} model={data.shoe.model} variant={data.shoe.variant} />
           </h1>
           <p className="ar-page-copy mt-2">
             {data.shoe.role} • {data.shoe.status}
@@ -113,64 +152,84 @@ function ShoeDetailPage() {
       </section>
 
       <section className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Runs logged" value={String(data.chartData.length)} helper="Sessions using this shoe" />
-        <StatCard label="Total km" value={`${data.shoe.totalKm.toFixed(2)} km`} helper="Stored shoe lifetime distance" />
-        <StatCard label="Trend view" value="Cadence + speed" helper="Stride length now included too" />
+        <StatCard
+          label="Runs logged"
+          value={String(data.chartData.length)}
+          helper="Sessions using this shoe"
+        />
+        <StatCard
+          label="Total km"
+          value={`${data.shoe.totalKm.toFixed(2)} km`}
+          helper="Stored shoe lifetime distance"
+        />
+        <StatCard
+          label="Average pace"
+          value={overallSummary.avgPaceSecPerKm == null ? '—' : formatTrendPace(overallSummary.avgPaceSecPerKm)}
+          helper={`Across ${overallSummary.totalDistanceKm.toFixed(1)} km logged in this shoe`}
+        />
       </section>
 
-      <section className="ar-card ar-card-pad">
-        <div>
-          <h2 className="text-[length:var(--text-card-title)] font-heading font-bold">Average cadence and speed over time</h2>
-          <p className="ar-helper mt-1">
-            Multi-line trend chart for each run logged in {shoeName}. Hover points to see pace too.
-          </p>
-        </div>
+      {activeWindow ? (
+        <>
+          <WindowPager
+            scopeLabel="Runs"
+            options={runWindows.map((window, index) => ({
+              value: window.value,
+              label: window.label,
+              hint: index === 0 ? `Latest ${window.count}` : `${window.count} runs`,
+            }))}
+            value={activeWindow.value}
+            onValueChange={(next) =>
+              navigate({ search: next === '0' ? {} : { page: Number(next) }, replace: true })
+            }
+            olderLabel="Earlier runs"
+            newerLabel="Later runs"
+            summary={
+              <WindowPagerSummary
+                stats={[
+                  { label: 'Runs shown', value: String(windowSummary.runCount) },
+                  { label: 'Distance', value: `${windowSummary.totalDistanceKm.toFixed(1)} km` },
+                  {
+                    label: 'Avg pace',
+                    value:
+                      windowSummary.avgPaceSecPerKm == null ? '—' : formatTrendPace(windowSummary.avgPaceSecPerKm),
+                  },
+                ]}
+              />
+            }
+          />
 
-        <div className="mt-6 h-[360px] w-full">
-          {data.chartData.length === 0 ? (
-            <div className="ar-empty">
-              No runs logged for this shoe yet.
+          <section className="ar-card ar-card-pad">
+            <div>
+              <h2 className="text-[length:var(--text-card-title)] font-heading font-bold">
+                Average cadence and speed — {activeWindow.label}
+              </h2>
+              <p className="ar-helper mt-1">
+                Multi-line trend for {shoeName}. {rangeCopy} Hover points to see pace too.
+              </p>
             </div>
-          ) : (
-            <TrendLineChart data={data.aggregatedChartData} />
-          )}
-        </div>
-      </section>
 
-      <section className="ar-card ar-card-pad">
-        <h2 className="text-[length:var(--text-card-title)] font-heading font-bold">Run history for this shoe</h2>
-        <p className="ar-helper mt-1">
-          Raw points behind the chart.
-        </p>
-        <div className="ar-table-wrap">
-          <table className="ar-table">
-            <thead>
-              <tr className="ar-table-head">
-                <th className="py-2 pr-4 font-medium">Date</th>
-                <th className="py-2 pr-4 font-medium">Distance</th>
-                <th className="py-2 pr-4 font-medium">Pace</th>
-                <th className="py-2 pr-4 font-medium hidden @[26rem]:table-cell">Cadence</th>
-                <th className="py-2 pr-4 font-medium hidden @[36rem]:table-cell">Stride</th>
-                <th className="py-2 pr-4 font-medium hidden @[36rem]:table-cell">HR</th>
-                <th className="py-2 pr-4 font-medium hidden @[26rem]:table-cell">Intent</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.chartData.map((run) => (
-                <tr key={run.id} className="border-b last:border-0 align-top">
-                  <td className="py-3 pr-4 whitespace-nowrap text-xs @[26rem]:text-sm">{run.date}</td>
-                  <td className="py-3 pr-4 whitespace-nowrap text-xs @[26rem]:text-sm">{run.distanceKm.toFixed(2)} km</td>
-                  <td className="py-3 pr-4 whitespace-nowrap text-xs @[26rem]:text-sm">{formatTrendPace(run.pace)}</td>
-                  <td className="py-3 pr-4 whitespace-nowrap hidden @[26rem]:table-cell">{run.cadence ?? '—'}</td>
-                  <td className="py-3 pr-4 whitespace-nowrap hidden @[36rem]:table-cell">{run.strideLengthM == null ? '—' : `${run.strideLengthM.toFixed(2)} m`}</td>
-                  <td className="py-3 pr-4 whitespace-nowrap hidden @[36rem]:table-cell">{run.avgHr ?? '—'}</td>
-                  <td className="py-3 pr-4 hidden @[26rem]:table-cell">{run.workoutIntent}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+            <div className="mt-6 h-[360px] w-full">
+              <TrendLineChart data={windowChartPoints} />
+            </div>
+          </section>
+
+          <section className="ar-card ar-card-pad">
+            <h2 className="text-[length:var(--text-card-title)] font-heading font-bold">
+              Run history — {activeWindow.label}
+            </h2>
+            <p className="ar-helper mt-1">
+              Raw points behind the chart, newest first. Select a row to open the run.
+            </p>
+            <RunHistoryTable rows={historyRows} emptyMessage="No runs logged for this shoe yet." />
+          </section>
+        </>
+      ) : (
+        <section className="ar-card ar-card-pad">
+          <h2 className="text-[length:var(--text-card-title)] font-heading font-bold">Run history for this shoe</h2>
+          <div className="ar-empty mt-4 h-24">No runs logged for this shoe yet.</div>
+        </section>
+      )}
     </main>
   )
 }
