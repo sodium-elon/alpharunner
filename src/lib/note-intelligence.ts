@@ -118,10 +118,33 @@ export function parseNoteIntelligence(raw: RawResponse): NoteIntelligenceResult 
 }
 
 export const NOTE_INTELLIGENCE_ENDPOINT = 'https://api.typesafe.ai/v1/systemone'
+export const OPENROUTER_DECISIONS_ENDPOINT = 'https://openrouter.ai/api/alpha/decisions'
+const OPENROUTER_JEV_MODEL = 'typesafe/jev-1.13'
 
 export interface AnalyzeOptions {
   apiKey?: string
+  openRouterApiKey?: string
   fetchImpl?: typeof fetch
+}
+
+async function postDecision(
+  url: string,
+  apiKey: string,
+  body: unknown,
+  fetchImpl: typeof fetch,
+): Promise<RawResponse> {
+  const res = await fetchImpl(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    throw new Error(`Note intelligence request failed (HTTP ${res.status}) from ${new URL(url).host}`)
+  }
+  return (await res.json()) as RawResponse
 }
 
 export async function analyzeRunNote(
@@ -134,20 +157,21 @@ export async function analyzeRunNote(
   }
 
   const fetchImpl = opts.fetchImpl ?? fetch
+  const body = buildNoteIntelligenceRequest(note)
 
-  const res = await fetchImpl(NOTE_INTELLIGENCE_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(buildNoteIntelligenceRequest(note)),
-  })
+  try {
+    return parseNoteIntelligence(await postDecision(NOTE_INTELLIGENCE_ENDPOINT, apiKey, body, fetchImpl))
+  } catch (primaryError) {
+    const orKey = opts.openRouterApiKey ?? process.env.OPENROUTER_API_KEY
+    if (!orKey) throw primaryError
 
-  if (!res.ok) {
-    throw new Error(`TypeSafe rejected the note intelligence request (HTTP ${res.status})`)
+    return parseNoteIntelligence(
+      await postDecision(
+        OPENROUTER_DECISIONS_ENDPOINT,
+        orKey,
+        { ...body, model: OPENROUTER_JEV_MODEL },
+        fetchImpl,
+      ),
+    )
   }
-
-  const raw = (await res.json()) as RawResponse
-  return parseNoteIntelligence(raw)
 }

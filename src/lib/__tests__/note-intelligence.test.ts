@@ -4,6 +4,7 @@ import {
   buildNoteIntelligenceRequest,
   INJURY_RISK_THRESHOLD,
   NOTE_INTELLIGENCE_ENDPOINT,
+  OPENROUTER_DECISIONS_ENDPOINT,
   parseNoteIntelligence,
 } from '../note-intelligence'
 
@@ -140,5 +141,45 @@ describe('analyzeRunNote', () => {
     const err = await analyzeRunNote('anything', { apiKey: 'bad', fetchImpl: unauthorizedFetch }).catch((e: unknown) => e)
     expect(err).toBeInstanceOf(Error)
     expect(String(err)).toMatch(/401/)
+  })
+
+  it('falls back to OpenRouter once when the primary endpoint fails', async () => {
+    const fetchImpl = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response('boom', { status: 500 }))                       // primary fails
+      .mockResolvedValueOnce(new Response(JSON.stringify(buildResponse()), { status: 200 })) // openrouter succeeds
+
+    const result = await analyzeRunNote('note with pain', {
+      apiKey: 'primary-key',
+      openRouterApiKey: 'or-key',
+      fetchImpl,
+    })
+
+    expect(result.runType).toBe('tempo')
+    expect(fetchImpl).toHaveBeenCalledTimes(2)
+    const [url1, init1] = fetchImpl.mock.calls[0]
+    const [url2, init2] = fetchImpl.mock.calls[1]
+    expect(url1).toBe(NOTE_INTELLIGENCE_ENDPOINT)
+    expect(url2).toBe(OPENROUTER_DECISIONS_ENDPOINT)
+    expect(JSON.parse((init2?.body as string)).model).toBe('typesafe/jev-1.13')
+    expect((init2?.headers as Record<string, string>).Authorization).toBe('Bearer or-key')
+  })
+
+  it('does not fall back when OPENROUTER_API_KEY is absent', async () => {
+    const fetchImpl = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response('boom', { status: 500 }))
+
+    const err = await analyzeRunNote('note', { apiKey: 'primary-key', fetchImpl }).catch((e: unknown) => e)
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+    expect(String(err)).toMatch(/500/)
+  })
+
+  it('propagates the error when the fallback also fails', async () => {
+    const fetchImpl = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response('boom', { status: 500 }))
+      .mockResolvedValueOnce(new Response('also boom', { status: 503 }))
+
+    const err = await analyzeRunNote('note', { apiKey: 'k', openRouterApiKey: 'or', fetchImpl }).catch((e: unknown) => e)
+    expect(fetchImpl).toHaveBeenCalledTimes(2)
+    expect(String(err)).toMatch(/503/)
   })
 })
