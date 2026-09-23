@@ -14,6 +14,17 @@ const nitroOutputDir = process.env.NITRO_OUTPUT_DIR
   ? resolve(__dirname, process.env.NITRO_OUTPUT_DIR)
   : undefined
 
+function vendorChunk(id: string) {
+  if (!id.includes('/node_modules/')) return undefined
+
+  if (id.includes('/recharts/')) return 'vendor-recharts'
+  if (id.includes('/d3-') || id.includes('/victory-vendor/')) return 'vendor-chart-math'
+  if (id.includes('/@reduxjs/') || id.includes('/redux/') || id.includes('/reselect/')) return 'vendor-chart-state'
+  if (id.includes('/react-dom/')) return 'vendor-react-dom'
+
+  return undefined
+}
+
 export default defineConfig({
   server: {
     host,
@@ -32,6 +43,9 @@ export default defineConfig({
   build: {
     rollupOptions: {
       external: ['postgres'],
+      output: {
+        manualChunks: vendorChunk,
+      },
     },
   },
 })

@@ -85,7 +85,7 @@ To populate the `shoes` table with real data, either:
 1. Add a gear endpoint to `~/www/garminme/garmin-mcp` mirroring eddmann's `query-gear`
 2. Or enter shoes manually in `import-seed.json` and link them to runs via `shoe_id`
 
-Until gear is available programmatically, the shoes in the seed file are manually maintained.
+Until gear is available programmatically, shoe metadata is bootstrapped from `import-seed.json`. After a shoe exists, the live AlphaRunner database is canonical; rerunning `db:import-seed` preserves existing shoe specs, mileage, status, and notes. When a researched spec change is accepted, update the live row and synchronize the seed snapshot for clean disaster recovery.
 
 ### Authentication
 
@@ -97,7 +97,7 @@ Garmin uses OAuth + MFA. Tokens are cached at `~/.garmin-connect-mcp/session.jso
 2. For each activity fetch `get-activity`, `get-activity-splits`, `get-activity-hr-zones`
 3. Add entries to `import-seed.json` under `runs`, `run_laps`, `hr_zone_distributions`
 4. IDs can be short strings (e.g. `garmin-run-12345`) — `import-seed.ts` maps them to stable UUIDs via `stableUuid()`
-5. Run `pnpm seed` with `DATABASE_URL` from `env-profiles/local.env`
+5. Run `pnpm db:import-seed` with `DATABASE_URL` from `env-profiles/local.env`. Existing live shoe rows are preserved; only missing shoes bootstrap from the seed.
 
 ## Next build steps
 

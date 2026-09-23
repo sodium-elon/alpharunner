@@ -29,6 +29,11 @@ const customMarkByBrand: Record<string, CustomBrandMark | undefined> = {
   saucony: sauconyMark,
 }
 
+const imageByBrand: Record<string, string | undefined> = {
+  dynafish: '/brand-logos/dynafish.png',
+  qiaodan: '/brand-logos/qiaodan.png',
+}
+
 const paletteByBrand: Record<string, { bg: string; fg: string; fallback: string }> = {
   adidas: { bg: '#111111', fg: '#ffffff', fallback: 'A' },
   nike: { bg: '#111111', fg: '#ffffff', fallback: 'N' },
@@ -36,6 +41,8 @@ const paletteByBrand: Record<string, { bg: string; fg: string; fallback: string 
   lining: { bg: '#d71920', fg: '#ffffff', fallback: 'LN' },
   asics: { bg: '#183a8f', fg: '#ffffff', fallback: 'A' },
   saucony: { bg: '#ffffff', fg: '#b50938', fallback: 'S' },
+  dynafish: { bg: '#ffffff', fg: '#127cc1', fallback: 'DF' },
+  qiaodan: { bg: '#ffffff', fg: '#ed1c24', fallback: 'Q' },
 }
 
 function normalizeBrand(brand: string) {
@@ -64,6 +71,7 @@ export function BrandLogo({ brand, className }: { brand: string; className?: str
   const key = normalizeBrand(brand)
   const icon = iconByBrand[key]
   const customMark = customMarkByBrand[key]
+  const image = imageByBrand[key]
   const palette = paletteByBrand[key] ?? { bg: '#475569', fg: '#ffffff', fallback: getFallbackLetters(brand) }
 
   return (
@@ -73,7 +81,9 @@ export function BrandLogo({ brand, className }: { brand: string; className?: str
       title={brand}
       aria-label={brand}
     >
-      {customMark ? (
+      {image ? (
+        <img src={image} alt="" className="h-5 w-5 object-contain" aria-hidden="true" />
+      ) : customMark ? (
         <svg viewBox={customMark.viewBox} className={`${customMark.iconClassName ?? 'h-3.5 w-3.5'} fill-current`} aria-hidden="true">
           <path d={customMark.path} />
         </svg>

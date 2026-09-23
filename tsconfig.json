@@ -1,5 +1,6 @@
 {
   "include": ["**/*.ts", "**/*.tsx", "**/*.d.ts"],
+  "exclude": ["node_modules", "tmp", ".output", "dist"],
   "compilerOptions": {
     "strict": true,
     "esModuleInterop": true,

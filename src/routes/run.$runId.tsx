@@ -185,6 +185,12 @@ function RunDetailPage() {
         <section className="ar-card ar-card-pad">
           <h2 className="text-[length:var(--text-card-title)] font-heading font-bold">Coaching analysis</h2>
           <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+            {run.workoutIntent !== 'unknown' && (
+              <div className="flex gap-2">
+                <dt className="w-32 shrink-0 text-muted-foreground">Session</dt>
+                <dd className="font-medium">{run.workoutIntent}</dd>
+              </div>
+            )}
             <div className="flex gap-2">
               <dt className="w-32 shrink-0 text-muted-foreground">Effort</dt>
               <dd className="font-medium">{coaching.effortLabel}</dd>

@@ -7,7 +7,6 @@ import {
   createRootRoute,
 } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import * as React from 'react'
 import { DefaultCatchBoundary } from '~/components/DefaultCatchBoundary'
 import { NotFound } from '~/components/NotFound'
@@ -15,6 +14,9 @@ import appCss from '~/app.css?url'
 import { seo } from '~/utils/seo'
 
 const appCssHref = import.meta.env.DEV ? '/src/app.css?direct' : appCss
+const RouterDevtools = import.meta.env.DEV
+  ? React.lazy(() => import('@tanstack/react-router-devtools').then(({ TanStackRouterDevtools }) => ({ default: TanStackRouterDevtools })))
+  : null
 
 const getRuntimeInfo = createServerFn({ method: 'GET' }).handler(async () => ({
   runtimePort: process.env.PORT ?? 'unknown',
@@ -90,7 +92,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
           </div>
         </header>
         {children}
-        <TanStackRouterDevtools position="bottom-right" />
+        {RouterDevtools ? (
+          <React.Suspense fallback={null}>
+            <RouterDevtools position="bottom-right" />
+          </React.Suspense>
+        ) : null}
         <Scripts />
       </body>
     </html>

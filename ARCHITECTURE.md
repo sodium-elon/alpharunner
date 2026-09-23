@@ -363,7 +363,7 @@ The migration directory is named `supabase/` for historical reasons — the proj
 
 ### Seed Import (`src/db/import-seed.ts`)
 
-Reads `../import-seed.json` (relative to the `alpharunner/` directory, so at the repo root). Uses SHA1-based `stableUuid()` to convert short string IDs (e.g. `"mock-run-1"`) to deterministic UUIDs — the mapping is printed on success. Re-runnable: upserts users and shoes, deletes-then-reinserts dependent rows (hr_zones, shoe_observations, coaching_notes) per run.
+Reads `../import-seed.json` (relative to the `alpharunner/` directory, so at the workspace root). Uses SHA1-based `stableUuid()` to convert short string IDs (e.g. `"mock-run-1"`) to deterministic UUIDs — the mapping is printed on success. Shoe rows are bootstrap-only: missing shoes are inserted, while existing live shoes are preserved so a stale seed cannot overwrite current specs, mileage, status, or notes. Users and runs retain their existing upsert behavior; dependent rows (hr_zones, shoe_observations, coaching_notes) are deleted and reinserted per seeded run.
 
 ---
 

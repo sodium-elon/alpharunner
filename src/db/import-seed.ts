@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import * as schema from './schema'
+import { shouldInsertSeedShoe } from './seed-policy'
 
 const { coachingNotes, hrZoneDistributions, runLaps, runs, shoeObservations, shoes, users } = schema
 
@@ -81,9 +82,17 @@ async function main() {
     }
   }
 
+  let insertedShoes = 0
+  let skippedExistingShoes = 0
+
   for (const row of mappedShoes) {
     const id = row.id as string
     const existing = await db.select().from(shoes).where(eq(shoes.id, id)).limit(1)
+    if (!shouldInsertSeedShoe(existing)) {
+      skippedExistingShoes += 1
+      continue
+    }
+
     const payload = {
       id,
       userId: row.user_id as string | null,
@@ -101,8 +110,8 @@ async function main() {
       notes: (row.notes as string | null | undefined) ?? null,
       updatedAt: new Date(),
     }
-    if (existing.length) await db.update(shoes).set(payload).where(eq(shoes.id, id))
-    else await db.insert(shoes).values({ ...payload, createdAt: new Date() })
+    await db.insert(shoes).values({ ...payload, createdAt: new Date() })
+    insertedShoes += 1
   }
 
   for (const row of mappedRuns) {
@@ -239,6 +248,8 @@ async function main() {
     imported: {
       users: mappedUsers.length,
       shoes: mappedShoes.length,
+      inserted_shoes: insertedShoes,
+      skipped_existing_shoes: skippedExistingShoes,
       runs: mappedRuns.length,
       run_laps: mappedLaps.length,
       hr_zone_distributions: mappedHr.length,
