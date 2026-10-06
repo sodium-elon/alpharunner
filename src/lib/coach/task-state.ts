@@ -8,9 +8,11 @@ const factsSchema = z.object({
   date: z.iso.date(), activityId: z.string().regex(/^\d+$/), shoeId: uuid,
   userRequest: z.string().min(1).max(4000),
   shoeTerm: z.string().trim().min(1).max(200).optional(),
-})
-export type TaskFacts = z.infer<typeof factsSchema>
-const taskSchema = factsSchema.extend({
+  operation: z.enum(['import', 'correct_run_shoe']).default('import'),
+  runId: uuid.optional(), oldShoeId: uuid.nullable().optional(),
+}).refine(facts => facts.operation !== 'correct_run_shoe' || (facts.runId !== undefined && facts.oldShoeId !== undefined), 'Correction scope requires run identity and old shoe')
+export type TaskFacts = z.input<typeof factsSchema>
+const taskSchema = factsSchema.safeExtend({
   id: uuid, status: z.enum(['pending', 'confirmed', 'running', 'completed', 'failed', 'cancelled']),
   createdAt: z.number().finite(),
   authorization: z.object({ sourceMessageId: z.string().min(1), confirmedAt: z.number().finite() }).nullable(),
@@ -61,6 +63,7 @@ export class TaskStore {
       if (task.status !== 'pending') throw new Error('Task is not awaiting confirmation')
       const now = this.clock()
       if (now >= task.createdAt + 30000) throw new Error('Confirmation expired')
+      if (task.operation !== expected.operation || task.runId !== expected.runId || task.oldShoeId !== expected.oldShoeId) throw new Error('Confirmation scope/operation mismatch')
       if (task.date !== expected.date || task.activityId !== expected.activityId || task.shoeId !== expected.shoeId) throw new Error('Confirmation does not match the original run and shoe')
       return { ...task, status: 'confirmed', authorization: { sourceMessageId: confirmation.sourceMessageId, confirmedAt: now } }
     })

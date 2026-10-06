@@ -17,6 +17,23 @@ function samples(watts = 250, times = Array.from({length:120}, (_,i) => i)) {
   ], activityDetailMetrics:times.map(t => ({metrics:[300,999,Date.parse(start)+t*1000,watts]}))}
 }
 describe('workout evidence', () => {
+  it('preserves Garmin compliance, algorithmic load and separate watch-entered self-evaluation', () => {
+    const a = staged([{ distance: 400, duration: 120 }])
+    Object.assign(a.detail.summaryDTO, { directWorkoutComplianceScore: 76, directWorkoutRpe: 20,
+      directWorkoutFeel: 75, trainingEffectLabel: 'LACTATE_THRESHOLD', trainingEffect: 5,
+      activityTrainingLoad: 321.24, aerobicTrainingEffectMessage: 'OVERREACHING_14' })
+    const f = extractWorkoutFeatures(a, samples())
+    expect(f.garminAssessment).toMatchObject({ source: 'garmin_summary', complianceScorePct: 76,
+      trainingEffectLabel: 'LACTATE_THRESHOLD', aerobicTrainingEffect: 5, activityTrainingLoad: 321.24,
+      selfEvaluation: { source: 'user_entered_garmin', rpeRaw: 20, rpe0To10: 2, feelRaw: 75 } })
+  })
+  it('keeps absent or malformed Garmin feedback unknown rather than inventing a user rating', () => {
+    const a = staged([{ distance: 400, duration: 120 }])
+    Object.assign(a.detail.summaryDTO, { directWorkoutComplianceScore: 101, directWorkoutRpe: '20', directWorkoutFeel: -1 })
+    const f = extractWorkoutFeatures(a, samples())
+    expect(f.garminAssessment.complianceScorePct).toBeNull()
+    expect(f.garminAssessment.selfEvaluation).toMatchObject({ rpeRaw: null, rpe0To10: null, feelRaw: null })
+  })
   it('retains valid zero watts in means and coverage once the provider has a real positive signal', () => {
     const details=samples()
     const index=details.metricDescriptors.find(d=>'appId' in d)!.metricsIndex

@@ -2,6 +2,28 @@ import { writeFile, access } from 'node:fs/promises'
 import { expect, it, vi } from 'vitest'
 import { GarminGateway } from '../garmin'
 
+it('preserves bounded exit diagnostics without leaking command output or credential-bearing errors', async () => {
+  const privateText = 'profile=private token=secret password=hidden ENV=credential'
+  const execute = async () => { throw Object.assign(new Error(privateText), { code: 75, stdout: privateText, stderr: privateText }) }
+  const gateway = new GarminGateway({ executable: '/private/executable', tokenStore: '/private/tokens', execute })
+  await expect(gateway.findActivities('2026-10-04')).rejects.toThrow('Garmin command failed: auth check (exit=75)')
+  try { await gateway.findActivities('2026-10-04') } catch (error) {
+    expect(String(error)).not.toContain(privateText)
+    expect(String(error)).not.toContain('/private')
+  }
+})
+
+it('reports a real missing executable as ENOENT rather than a generic auth failure', async () => {
+  const gateway = new GarminGateway({ executable: '/nonexistent-coach-fixture/garmin-cli', tokenStore: '/private/tokens' })
+  await expect(gateway.findActivities('2026-10-04')).rejects.toThrow('Garmin command failed: auth check (error=ENOENT)')
+})
+
+it('distinguishes killed subprocesses with an allowlisted signal and bounded metadata', async () => {
+  const execute = async () => { throw { code: null, signal: 'SIGTERM', killed: true, message: 'secret', stdout: 'private profile', stderr: 'token' } }
+  const gateway = new GarminGateway({ executable: '/fake', tokenStore: '/tokens', execute })
+  await expect(gateway.findActivities('2026-10-04')).rejects.toThrow('Garmin command failed: auth check (signal=SIGTERM killed=true)')
+})
+
 const activity = {
   listItem: { activityId: 123, activityName: 'Base', startTimeLocal: '2026-10-03 18:35:18' },
   detail: { activityId: 123, activityTypeDTO: { typeKey: 'treadmill_running' }, summaryDTO: { startTimeLocal: '2026-10-03T18:35:18', startTimeGMT: '2026-10-03T16:35:18', distance: 5000, duration: 1800 } },

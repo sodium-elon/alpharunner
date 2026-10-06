@@ -23,11 +23,9 @@ async function envFile(path: string) {
 // The token stays in its existing environment/secrets files. Diagnostics never
 // include credential values, connection strings or private provider responses.
 export async function loadCoachEnvironment(options: EnvironmentOptions = {}) {
-  const [project, shared] = await Promise.all([
-    envFile(options.projectEnv ?? fileURLToPath(new URL('../../../../env-profiles/local.env', import.meta.url))),
-    envFile(options.sharedEnv ?? join(homedir(), '.hermes/secrets/typesafe.env')),
-  ])
+  const project = await envFile(options.projectEnv ?? fileURLToPath(new URL('../../../../env-profiles/local.env', import.meta.url)))
   const env = { ...project, ...(options.processEnv ?? process.env) }
+  const shared = await envFile(options.sharedEnv ?? env.COACH_SHARED_ENV ?? join(homedir(), '.hermes/secrets/typesafe.env'))
   const apiKey = env.TYPESAFE_API_KEY || shared.TYPESAFE_API_KEY || undefined
   const openRouterApiKey = env.OPENROUTER_API_KEY || undefined
   const databaseUrl = env.DATABASE_URL || undefined

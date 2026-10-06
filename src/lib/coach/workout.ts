@@ -1,4 +1,4 @@
-import { choiceAnswer, type DecisionRunner, type DecisionRequest } from './jev-client'
+import { choiceAnswer, type DecisionRunner, type DecisionRequest, type DecisionResponse } from './jev-client'
 
 type Row = Record<string, unknown>
 const row = (v: unknown): Row => v !== null && typeof v === 'object' && !Array.isArray(v) ? v as Row : {}
@@ -97,7 +97,18 @@ export function extractWorkoutFeatures(activity: unknown, details?: unknown) {
   const halfDeltas = {hrPct:delta('hr'),pacePct:delta('paceSecPerKm'),powerPct:delta('powerW'),method:'duration_weighted_laps_with_aggregate_pace',interpretation:'descriptive_not_fitness_diagnosis'}
   const mechanics = {source:'garmin',cadenceSpm:positive(s.averageRunCadence) ?? weighted(laps,'cadenceSpm'),groundContactMs:positive(s.groundContactTime) ?? weighted(laps,'groundContactMs'),strideLengthCm:positive(s.strideLength) ?? weighted(laps,'strideLengthCm'),verticalOscillationCm:positive(s.verticalOscillation) ?? weighted(laps,'verticalOscillationCm'),verticalRatioPct:positive(s.verticalRatio) ?? weighted(laps,'verticalRatioPct')}
   const hrZones = Array.isArray(a.hrZones) ? {source:'garmin_hr',zones:a.hrZones.map(row).filter(z => positive(z.zoneNumber) !== null && finite(z.secsInZone) !== null && Number(z.secsInZone) >= 0 && positive(z.zoneLowBoundary) !== null).map(z => ({zoneNumber:z.zoneNumber,secsInZone:z.secsInZone,zoneLowBoundary:z.zoneLowBoundary}))} : null
-  return { activityId, date, activityName: list.activityName, halfDeltas, mechanics, hrZones,
+  const bounded = (v: unknown, max: number): number | null => { const n = finite(v); return n !== null && n >= 0 && n <= max ? n : null }
+  const text = (v: unknown): string | null => typeof v === 'string' && v.trim() ? v : null
+  const rpeRaw = bounded(s.directWorkoutRpe, 100)
+  const garminAssessment = { source: 'garmin_summary',
+    complianceScorePct: bounded(s.directWorkoutComplianceScore, 100),
+    trainingEffectLabel: text(s.trainingEffectLabel),
+    aerobicTrainingEffect: bounded(s.trainingEffect, 5), anaerobicTrainingEffect: bounded(s.anaerobicTrainingEffect, 5),
+    aerobicMessage: text(s.aerobicTrainingEffectMessage), anaerobicMessage: text(s.anaerobicTrainingEffectMessage),
+    activityTrainingLoad: bounded(s.activityTrainingLoad, 10000),
+    selfEvaluation: { source: 'user_entered_garmin', rpeRaw, rpe0To10: rpeRaw === null ? null : rpeRaw / 10,
+      feelRaw: bounded(s.directWorkoutFeel, 100), interpretation: 'user_feedback_not_shoe_comfort_or_algorithmic_load' } }
+  return { activityId, date, activityName: list.activityName, halfDeltas, mechanics, hrZones, garminAssessment,
     distanceM, durationS, paceSecPerKm: distanceM && durationS ? durationS * 1000 / distanceM : null,
     laps, power: (({samples: _samples, ...evidence}) => evidence)(power), distanceMismatchM, durationMismatchS, confidenceGaps,
     criticalPower: null, structure }
@@ -108,12 +119,17 @@ const effortCriteria = {easy:'Clearly easy/recovery effort',base:'Aerobic base e
 const intentCriteria = {on_target:'Completed workout aligns with explicitly supplied user intent',harder_than_intended:'Completed effort is harder than explicitly intended',easier_than_intended:'Completed effort is easier than explicitly intended',unknown:'Intent or evidence is insufficient'}
 /** Code supplies measurements; Jev interprets semantics. Plan is never completed evidence. */
 export async function classifyWorkout(features:WorkoutFeatures, runner:DecisionRunner, context:WorkoutContext = {}) {
+  return parseWorkoutClassification(features, await runner(buildWorkoutRequest(features, context)))
+}
+export function buildWorkoutRequest(features:WorkoutFeatures, context:WorkoutContext = {}): DecisionRequest {
   const questions:DecisionRequest['questions'] = {
-    effort:{type:'choice',instructions:'Judge semantic completed effort, not a numerical calibration shortcut. Raw watts alone do not identify effort. Do not invent CP, zones or thresholds. Unknown is valid without sufficient context. Explicit user intent is context, not proof of completed effort. Use supplied code-calculated features only; perform no math.',criteria:effortCriteria},
+    effort:{type:'choice',instructions:'Judge semantic completed effort, not a numerical calibration shortcut. Raw watts alone do not identify effort. Separate user-entered Garmin perceived exertion from algorithmic training load; a Garmin training-effect label is not independent proof of sustained threshold or hard intensity. Do not invent CP, zones or thresholds. Unknown is valid without sufficient context. Explicit user intent is context, not proof of completed effort. Use supplied code-calculated features only; perform no math.',criteria:effortCriteria},
     intent_match:{type:'choice',instructions:'Compare completed evidence against explicit userIntent; prefer it over Garmin enum labels or activity titles. Plan is proposed, not completed. Unknown if no explicit intent. Do not calculate numbers or invent calibration.',criteria:intentCriteria}
   }
   if (features.structure.type === 'unknown') questions.structure = {type:'choice',instructions:'Judge completed structure only from supplied evidence. A title, user intention or plan alone cannot prove execution. Never invent repetition counts; unknown is valid.',criteria:{sprint_intervals:'Evidence supports short work and recovery',longer_intervals:'Evidence supports longer work and recovery',continuous:'Evidence supports continuous running',unknown:'Insufficient completed structural evidence'}}
-  const response = await runner({state:{completedWorkout:features,userIntent:context.userIntent ?? null,plan:context.plan ?? null},questions})
+  return {state:{completedWorkout:features,userIntent:context.userIntent ?? null,plan:context.plan ?? null},questions}
+}
+export function parseWorkoutClassification(features: WorkoutFeatures, response: DecisionResponse) {
   const effort = choiceAnswer(response,'effort',Object.keys(effortCriteria))
   const intentMatch = choiceAnswer(response,'intent_match',Object.keys(intentCriteria))
   const decisive = (answer: typeof effort) => answer.choice !== 'unknown' && answer.confidence >= .7 && answer.probabilities[answer.choice] >= .7 && answer.probabilities[answer.choice] - Math.max(0,...Object.entries(answer.probabilities).filter(([key])=>key!==answer.choice).map(([,value])=>value)) >= .2

@@ -5,11 +5,12 @@ import { type CommandHandlers } from './commands'
 import { createDecisionRunner, type DecisionRunner } from './jev-client'
 import { classifyRequest } from './request'
 import { resolveShoe, recommendShoes, type ShoeCandidate } from './shoes'
-import { extractWorkoutFeatures, classifyWorkout } from './workout'
+import { extractWorkoutFeatures, buildWorkoutRequest, parseWorkoutClassification } from './workout'
+import { briefQuestions, parseAnalysisBrief, normalizeAnalysisContext, summarizeAnalysisHistory, loadAnalysisReferences, type AnalysisRepositoryContext } from './analysis-brief'
 import { classifyUserNote } from './notes'
 import { GarminGateway } from './garmin'
 import { TaskStore } from './task-state'
-import { createPostgresRepository, loadInventory, loadHistory, persistRun, type PostgresRepository, type PersistRunInput } from './repository'
+import { createPostgresRepository, loadInventory, loadHistory, loadRunSummary, loadAnalysisHistory, correctRunShoe, persistRun, type PostgresRepository, type PersistRunInput } from './repository'
 
 export interface CoachDependencies {
   runner?: DecisionRunner
@@ -33,19 +34,34 @@ export function createCoachServices(environment: CoachEnvironment, dependencies:
       curatedMetadata: shoe.notes?.trim() ? { source: `AlphaRunner shoes/${shoe.id}`, construction: shoe.notes, intendedUse: `${shoe.role}; ${shoe.category ?? 'category not recorded'}` } : undefined,
     })))
   }
+  async function analysisRepositoryContext(activityId: string, date: string): Promise<AnalysisRepositoryContext> {
+    const unavailable: AnalysisRepositoryContext = { currentRun: { status: 'unavailable', sourcePath: 'AlphaRunner runs' }, history: [], historyStatus: 'unavailable' }
+    if (!dependencies.openRepository && !environment.databaseUrl) return unavailable
+    try {
+      return await withRepository(async repository => {
+        const [summary, history] = await Promise.allSettled([loadRunSummary(repository.sql, date, activityId), loadAnalysisHistory(repository.sql, date)])
+        return { currentRun: summary.status === 'fulfilled' ? { ...summary.value, sourcePath: `AlphaRunner runs?date=${date}&activityId=${activityId}` } : unavailable.currentRun,
+          history: history.status === 'fulfilled' ? history.value : [], historyStatus: history.status === 'fulfilled' ? 'available' : 'unavailable' }
+      })
+    } catch { return unavailable }
+  }
   async function analyze(activityId: string, date: string, userIntent?: string, userNote?: string) {
-    const evidence = await gateway.fetchActivity(activityId, date)
+    const [evidence, repositoryContext] = await Promise.all([gateway.fetchActivity(activityId, date), analysisRepositoryContext(activityId, date)])
     const features = extractWorkoutFeatures(evidence.activity, evidence.details)
-    const plan = evidence.context.calendar.filter(item => item.date === date && ['workout','adaptiveWorkout'].includes(String(item.itemType)))
-    const [judgments, note] = await Promise.all([
-      classifyWorkout(features, runner, { userIntent, plan }),
+    const plan = evidence.context.calendar.filter(item => String(item.date).slice(0, 10) === date && ['workout','adaptiveWorkout','fbtAdaptiveWorkout'].includes(String(item.itemType)))
+    const analysisContext = { ...normalizeAnalysisContext(date, evidence.context), ...summarizeAnalysisHistory(features, repositoryContext), ...await loadAnalysisReferences(features, repositoryContext.currentRun) }
+    const request = buildWorkoutRequest(features, { userIntent, plan })
+    request.state = { ...request.state as object, analysisContext }
+    const [response, note] = await Promise.all([
+      runner({ ...request, questions: { ...request.questions, ...briefQuestions(analysisContext) } }),
       userNote ? classifyUserNote({ text: userNote, source: 'user', observedAt: date }, runner) : Promise.resolve(null),
     ])
-    return { evidence, features, judgments, userNote: note }
+    return { evidence, features, judgments: parseWorkoutClassification(features, response), analysisBrief: parseAnalysisBrief(features, response, analysisContext), userNote: note }
   }
   return {
     route: options => classifyRequest(options.text, runner),
     inventory: async () => candidates(),
+    'run-summary': options => withRepository(repository => loadRunSummary(repository.sql, options.date, options['activity-id'])),
     'resolve-shoe': async options => resolveShoe(options.term, await candidates(), runner),
     'recommend-shoes': async options => {
       const [shoes, history] = await Promise.all([candidates(), withRepository(repository => loadHistory(repository.sql))])
@@ -69,15 +85,51 @@ export function createCoachServices(environment: CoachEnvironment, dependencies:
       const task = await store.create({ date: options.date, activityId: activities[0].activityId, shoeId: shoe.shoeId, shoeTerm: options.term, userRequest: options['user-request'] })
       return { status: 'awaiting_confirmation', task, shoe, confirmationDeadlineMs: task.createdAt + 30000, note: 'Confirm only from an actual user message; selection is not proof of the worn shoe.' }
     },
+    'prepare-correction': async options => {
+      const [summary, shoes] = await Promise.all([
+        withRepository(repository => loadRunSummary(repository.sql, options.date, options['activity-id'])), candidates(),
+      ])
+      const shoe = await resolveShoe(options.term, shoes, runner)
+      if (summary.status !== 'found' || !summary.run || shoe.status !== 'matched' || !shoe.shoeId) return { status: 'needs_clarification', summary, shoe }
+      const run = summary.run
+      if (run.shoeId === shoe.shoeId) return { status: 'already_correct', run, shoe, verified: true, mode: 'read_only' }
+      const activityId = z.string().regex(/^[1-9]\d*$/).parse(run.activityId)
+      const task = await store.create({ operation: 'correct_run_shoe', runId: z.string().regex(/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i).parse(run.runId), oldShoeId: z.string().regex(/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i).nullable().parse(run.shoeId),
+        date: options.date, activityId, shoeId: shoe.shoeId, shoeTerm: options.term, userRequest: options['user-request'] })
+      return { status: 'awaiting_confirmation', task, run, shoe, confirmationDeadlineMs: task.createdAt + 30000,
+        note: 'Explicitly confirm correction of this existing run from the pinned old shoe to the target shoe; this is not an import approval.' }
+    },
+    'correct-shoe-task': async options => {
+      const task = await store.read(options['task-id'])
+      if (task.operation !== 'correct_run_shoe') throw new Error('Wrong task operation: correction required')
+      if (task.status !== 'confirmed' || !task.authorization) throw new Error('An actual user confirmation is required before correcting')
+      const claimed = await store.claim(task.id)
+      const claimToken = z.string().min(1).parse(claimed.claimToken)
+      try {
+        const result = await withRepository(repository => {
+          if (!repository.sqlTransaction) throw new Error('Correction transaction unavailable')
+          return correctRunShoe({ runId: z.string().regex(/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i).parse(task.runId), date: task.date, activityId: task.activityId,
+            oldShoeId: z.string().regex(/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i).nullable().parse(task.oldShoeId), shoeId: task.shoeId }, { sqlTransaction: repository.sqlTransaction.bind(repository) })
+        })
+        await store.complete(task.id, claimToken, { ...result })
+        return result
+      } catch (error) {
+        await store.fail(task.id, claimToken, { message: 'Correction failed; inspect error and prepare a fresh scope before retrying' })
+        throw error
+      }
+    },
     'task-create': options => store.create({ date: options.date, activityId: options['activity-id'], shoeId: options['shoe-id'], userRequest: options['user-request'] }),
     'task-show': options => store.read(options['task-id']),
     'task-confirm': async options => {
       if (options.answer === 'no') return store.cancel(options['task-id'])
       const task = await store.read(options['task-id'])
-      return store.confirm(task.id, { answer: 'yes', sourceMessageId: options['source-message-id'], expected: { date: options.date, activityId: options['activity-id'], shoeId: options['shoe-id'], userRequest: task.userRequest } })
+      return store.confirm(task.id, { answer: 'yes', sourceMessageId: options['source-message-id'], expected: { date: options.date, activityId: options['activity-id'], shoeId: options['shoe-id'], userRequest: task.userRequest,
+        operation: z.enum(['import', 'correct_run_shoe']).parse(options.operation ?? 'import'), runId: options['run-id'], oldShoeId: options['old-shoe-id'] === 'none' ? null : options['old-shoe-id'],
+      } })
     },
     'import-task': async options => {
       const task = await store.read(options['task-id'])
+      if (task.operation !== 'import') throw new Error('Wrong task operation: import required')
       if (task.status !== 'confirmed' || !task.authorization) throw new Error('An actual user confirmation is required before importing')
       const coaching = JSON.parse(await readFile(options['coaching-file'], 'utf8')) as Pick<PersistRunInput, 'coaching' | 'shoeObservation' | 'userNote'> & {taskId:string}
       if (coaching?.taskId !== task.id) throw new Error('Coaching scope does not match this confirmed task')

@@ -25,7 +25,17 @@ export class GarminGateway {
 
   private async run(args: string[]): Promise<string> {
     try { return await (this.options.execute ?? defaultExecute)(this.options.executable, ['--tokenstore', this.options.tokenStore, ...args]) }
-    catch { throw new Error(`Garmin command failed: ${args.slice(0, 2).join(' ')}`) }
+    catch (error) {
+      // Never retain the original error/cause: execFile errors include argv,
+      // private stdout/stderr and sometimes credentials. Only bounded metadata.
+      const failure = error && typeof error === 'object' ? error as { code?: unknown; signal?: unknown; killed?: unknown } : {}
+      const metadata: string[] = []
+      if (typeof failure.code === 'number' && Number.isInteger(failure.code) && failure.code >= 0 && failure.code <= 255) metadata.push(`exit=${failure.code}`)
+      else if (typeof failure.code === 'string' && ['ENOENT', 'EACCES', 'EPERM', 'EIO', 'ENOMEM', 'EAGAIN', 'ETIMEDOUT', 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER', 'ABORT_ERR'].includes(failure.code)) metadata.push(`error=${failure.code}`)
+      if (typeof failure.signal === 'string' && ['SIGTERM', 'SIGKILL', 'SIGINT', 'SIGABRT', 'SIGHUP', 'SIGSEGV', 'SIGPIPE', 'SIGQUIT', 'SIGALRM'].includes(failure.signal)) metadata.push(`signal=${failure.signal}`)
+      if (failure.killed === true) metadata.push('killed=true')
+      throw new Error(`Garmin command failed: ${args.slice(0, 2).join(' ')} (${metadata.join(' ') || 'error=unknown'})`)
+    }
   }
   private async json(args: string[]): Promise<unknown> {
     try { return JSON.parse(await this.run(args)) }

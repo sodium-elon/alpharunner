@@ -54,8 +54,10 @@ function validateInput(input: PersistRunInput): {coaching:PersistRunInput['coach
       if (typeof value !== 'number') continue
       const latitude=/(?:Lat|Latitude)$/i.test(key),longitude=/(?:Lng|Longitude)$/i.test(key)
       const coordinate=latitude||longitude
-      const signed=coordinate||/^(?:(?:min|max|average))?(?:Elevation|Temperature)$/i.test(key)
+      const bodyBatteryChange=key==='differenceBodyBattery'
+      const signed=coordinate||bodyBatteryChange||/^(?:(?:min|max|average))?(?:Elevation|Temperature)$/i.test(key)
       if (!Number.isFinite(value) || (!signed && value < 0) || (coordinate && Math.abs(value) > (latitude ? 90 : 180))) throw new Error(`Invalid metric range: ${key}`)
+      if (bodyBatteryChange && Math.abs(value) > 100) throw new Error(`Invalid metric range: ${key}`)
       if (/HR$/.test(key) && value > 250) throw new Error(`Invalid HR range: ${key}`)
       if (/Stamina$/.test(key) && value > 100) throw new Error(`Invalid stamina range: ${key}`)
     }
@@ -71,9 +73,13 @@ function validateInput(input: PersistRunInput): {coaching:PersistRunInput['coach
   if (zones.some(z => !Number.isInteger(z) || z < 1 || z > 5) || new Set(zones).size !== zones.length || a.hrZones.some(z => z.secsInZone > a.detail.summaryDTO.duration)) throw new Error('Invalid HR zone')
   const savedText = [...Object.values(input.coaching), input.shoeObservation?.notes, input.userNote, power?.provenance].filter(v => v !== undefined)
   if (savedText.some(t => typeof t !== 'string' || /injury[\s_-]+probability/i.test(t))) throw new Error('Invalid text or prohibited injury probability claim')
+  const summary = [input.coaching.keyPositive, input.coaching.keyConcern, input.coaching.recommendation]
+  if (summary.some(t => typeof t !== 'string' || !t.trim() || t.length > 800) || summary.reduce((n, t) => n + t.length, 0) > 2000) throw new Error('Coaching summary must be concise: 1–800 characters per field, 2000 total; keep audit details outside the summary')
+  if (input.shoeObservation?.notes && input.shoeObservation.notes.length > 500) throw new Error('Shoe observation must be concise: at most 500 characters; preserve detailed evidence separately')
   if ([...Object.values(input.coaching), input.shoeObservation?.notes, power?.provenance].some(t => t && /\bpower source\s*:/i.test(t))) throw new Error('Power source labels are reserved for validated source evidence')
   if (power) {
     if (!['stryd', 'garmin', 'unavailable'].includes(power.source) || !power.provenance.trim()) throw new Error('Validated power provenance is required')
+    if (power.provenance.length > 300) throw new Error('Power provenance must be concise: at most 300 characters')
     const seen = new Set<number>()
     for (const lap of power.laps) {
       if (!indices.includes(lap.lapIndex) || seen.has(lap.lapIndex)) throw new Error('Unknown or duplicate power lap')
@@ -154,10 +160,34 @@ export interface HistoryRun {
   effort: string | null; comfort: number | null; evidence: string
 }
 function sourceFromEvidence(evidence: string): PowerSource {
-  const labels = [...evidence.matchAll(/\bpower source\s*:\s*(stryd|garmin|unavailable|unknown)\b/gi)].map(m => m[1].toLowerCase())
+  const labels = [...evidence.matchAll(/\bpower source\s*:\s*(?:validated\s+)?(stryd|garmin|unavailable|unknown)\b/gi)].map(m => m[1].toLowerCase())
   const sources = new Set(labels)
   return sources.size === 1 && (sources.has('stryd') || sources.has('garmin')) ? labels[0] as PowerSource : 'unknown'
 }
+export async function loadRunSummary(sql: SqlExecutor, date: string, activityId?: string) {
+  const rows = await sql.unsafe(`SELECT r.id AS "runId", r.date::text AS date,
+    r.garmin_activity_id AS "activityId", r.activity_type AS "activityType",
+    r.surface, r.workout_intent AS "workoutIntent", r.distance_km AS "distanceKm",
+    r.duration_seconds AS "durationSeconds", r.avg_pace_sec_per_km AS "paceSecPerKm",
+    r.avg_hr AS "avgHr", r.avg_cadence AS "avgCadence", r.avg_power_w AS "avgPowerW",
+    r.shoe_id AS "shoeId", s.brand, s.model,
+    concat(c.key_positive,' ',c.key_concern,' ',c.recommendation) AS evidence
+    FROM alpharunner.runs r LEFT JOIN alpharunner.shoes s ON s.id=r.shoe_id
+    LEFT JOIN LATERAL (SELECT key_positive,key_concern,recommendation
+      FROM alpharunner.coaching_notes WHERE run_id=r.id ORDER BY created_at DESC LIMIT 1) c ON true
+    WHERE r.date=$1::date AND lower(r.activity_type) IN ('running','treadmill_running')
+    ${activityId ? 'AND r.garmin_activity_id=$2' : ''} ORDER BY r.id`, activityId ? [date, activityId] : [date])
+  const runs = rows.map(({ evidence, ...run }) => {
+    const distance = Number(run.distanceKm), duration = Number(run.durationSeconds)
+    return { ...run, powerSource: sourceFromEvidence(String(evidence ?? '')),
+      averageSpeedKmh: Number.isFinite(distance) && Number.isFinite(duration) && distance > 0 && duration > 0 ? Number((distance * 3600 / duration).toFixed(2)) : null,
+      speedBasis: 'stored_distance_and_duration' } as Record<string, unknown> & { powerSource: PowerSource; averageSpeedKmh: number | null; speedBasis: string }
+  })
+  if (runs.length === 0) return { status: 'not_found', date, mode: 'read_only' }
+  if (runs.length > 1) return { status: 'ambiguous', date, candidates: runs, mode: 'read_only' }
+  return { status: 'found', date, run: runs[0], mode: 'read_only' }
+}
+
 export async function loadHistory(sql?: SqlExecutor): Promise<HistoryRun[]> {
   const rows = await requireSql(sql).unsafe(`SELECT r.shoe_id AS "shoeId", r.id, r.date::text AS date,
     r.surface, r.avg_pace_sec_per_km AS "paceSecPerKm", r.avg_power_w AS "powerW",
@@ -168,7 +198,65 @@ export async function loadHistory(sql?: SqlExecutor): Promise<HistoryRun[]> {
     ORDER BY r.date DESC, r.id`)
   return rows.map(r => ({ ...r, powerSource: sourceFromEvidence(String(r.evidence ?? '')) })) as unknown as HistoryRun[]
 }
+export interface AnalysisHistoryRun {
+  id: string; activityId: string | null; date: string; activityType: string; shoeId: string | null
+  distanceKm: number; durationSeconds: number; paceSecPerKm: number; workoutIntent: string | null
+  surface: string | null; powerW: number | null; powerSource: PowerSource; evidence: string
+}
+/** Read-only bounded running history; provenance is from the latest coaching record, not shoe prose. */
+export async function loadAnalysisHistory(sql: SqlExecutor, date: string): Promise<AnalysisHistoryRun[]> {
+  const rows = await sql.unsafe(`SELECT r.id, r.garmin_activity_id AS "activityId", r.date::text AS date,
+    r.activity_type AS "activityType", r.shoe_id AS "shoeId", r.surface, r.workout_intent AS "workoutIntent",
+    r.distance_km AS "distanceKm", r.duration_seconds AS "durationSeconds",
+    r.avg_pace_sec_per_km AS "paceSecPerKm", r.avg_power_w AS "powerW",
+    concat_ws(E'\\\\n',c.key_positive,c.key_concern,c.recommendation) AS evidence
+    FROM alpharunner.runs r LEFT JOIN LATERAL (SELECT key_positive,key_concern,recommendation
+      FROM alpharunner.coaching_notes WHERE run_id=r.id ORDER BY created_at DESC LIMIT 1) c ON true
+    WHERE r.date >= $1::date - 28 AND r.date < $1::date
+      AND lower(r.activity_type) IN ('running','treadmill_running') ORDER BY r.date DESC,r.id`, [date])
+  return rows.map(r => ({ ...r, distanceKm: Number(r.distanceKm), durationSeconds: Number(r.durationSeconds),
+    paceSecPerKm: Number(r.paceSecPerKm), powerSource: sourceFromEvidence(String(r.evidence ?? '')) })) as AnalysisHistoryRun[]
+}
+
+export interface ShoeCorrectionScope { runId: string; date: string; activityId: string; oldShoeId: string | null; shoeId: string }
+export interface SqlTransactionRepository { sqlTransaction<T>(work: (sql: SqlExecutor) => Promise<T>): Promise<T> }
+const reviewMarker = '[SHOE CORRECTION REVIEW REQUIRED]'
+/** No import/analysis: retain original observations on their historical shoe. */
+export async function correctRunShoe(scope: ShoeCorrectionScope, repository: SqlTransactionRepository) {
+  return repository.sqlTransaction(async sql => {
+    const [run] = await sql.unsafe(`SELECT ${identityColumns}, user_id AS "userId", activity_type AS "activityType" FROM alpharunner.runs WHERE id = $1 FOR UPDATE`, [scope.runId])
+    if (!run || run.id !== scope.runId || run.date !== scope.date || run.garminActivityId !== scope.activityId || run.shoeId !== scope.oldShoeId || !['running', 'treadmill_running'].includes(String(run.activityType).toLowerCase())) throw new Error('Correction run scope changed')
+    const tx = postgresTransaction(sql)
+    // Stable lock order for corrections touching the same shoes.
+    for (const id of [...new Set([scope.oldShoeId, scope.shoeId].filter((id): id is string => id !== null))].sort()) {
+      const shoe = await tx.getShoe(id)
+      if (!shoe || (shoe.userId !== null && shoe.userId !== run.userId)) throw new Error('Correction shoe inventory/owner mismatch')
+    }
+    if (scope.oldShoeId === scope.shoeId) {
+      const notes = await sql.unsafe('SELECT recommendation FROM alpharunner.coaching_notes WHERE run_id = $1', [scope.runId])
+      return { status: 'already_correct', ...scope, verified: true, coachingReviewRequired: notes.some(note => String(note.recommendation).includes(reviewMarker)) }
+    }
+    const updated = await sql.unsafe('UPDATE alpharunner.runs SET shoe_id = $2 WHERE id = $1 RETURNING id', [scope.runId, scope.shoeId])
+    if (updated.length !== 1) throw new Error('Correction update failed')
+    const provenance = `[HISTORICAL SHOE OBSERVATION: run shoe corrected from ${scope.oldShoeId ?? 'unassigned'} to ${scope.shoeId}; not evidence for the corrected shoe]`
+    await sql.unsafe(`UPDATE alpharunner.shoe_observations SET notes = concat_ws(E'\\n', notes, $3::text) WHERE run_id = $1 AND shoe_id = $2`, [scope.runId, scope.oldShoeId, provenance])
+    const review = `${reviewMarker} Shoe changed from ${scope.oldShoeId ?? 'unassigned'} to ${scope.shoeId}; original analysis retained, shoe-dependent conclusions require review.`
+    await sql.unsafe(`UPDATE alpharunner.coaching_notes SET recommendation = concat_ws(E'\\n', recommendation, $2::text), updated_at = now() WHERE run_id = $1`, [scope.runId, review])
+    await sql.unsafe(`INSERT INTO alpharunner.coaching_notes (run_id, effort_label, recommendation)
+      SELECT $1, 'unknown', $2 WHERE NOT EXISTS (SELECT 1 FROM alpharunner.coaching_notes WHERE run_id = $1)
+      ON CONFLICT (run_id) DO NOTHING`, [scope.runId, review])
+    const oldShoeKm = scope.oldShoeId === null ? null : await tx.reconcileMileage(scope.oldShoeId)
+    const shoeKm = await tx.reconcileMileage(scope.shoeId)
+    const [readback] = await sql.unsafe(`SELECT ${identityColumns} FROM alpharunner.runs WHERE id = $1`, [scope.runId])
+    if (!readback || readback.id !== scope.runId || readback.date !== scope.date || readback.garminActivityId !== scope.activityId || readback.shoeId !== scope.shoeId) throw new Error('Correction readback verification failed')
+    const notes = await sql.unsafe('SELECT recommendation FROM alpharunner.coaching_notes WHERE run_id = $1', [scope.runId])
+    if (notes.length !== 1 || notes.some(note => !String(note.recommendation).includes(reviewMarker))) throw new Error('Correction review verification failed')
+    return { status: 'corrected', ...scope, oldShoeKm, shoeKm, verified: true, coachingReviewRequired: true }
+  })
+}
+
 export interface PostgresRepository extends RunRepository {
+  sqlTransaction?: SqlTransactionRepository['sqlTransaction']
   sql: SqlExecutor
   close(): Promise<void>
 }
@@ -237,6 +325,9 @@ export function createPostgresRepository(connectionString: string): PostgresRepo
   const client = postgres(connectionString)
   return {
     sql: executor(client),
+    sqlTransaction<T>(work: (sql: SqlExecutor) => Promise<T>): Promise<T> {
+      return client.begin(async sql => work(executor(sql))) as Promise<T>
+    },
     transaction<T>(work: (tx: TransactionRepository) => Promise<T>): Promise<T> {
       return client.begin(async sql => work(postgresTransaction(executor(sql)))) as Promise<T>
     },

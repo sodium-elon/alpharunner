@@ -101,6 +101,37 @@ describe('postgres adapter (mocked transport only)', () => {
 })
 
 describe('persistence', () => {
+  it('rejects an audit-length coaching field before any writes instead of truncating it', async () => {
+    const i = input(); i.coaching.recommendation = 'x'.repeat(801)
+    const f = fake()
+    await expect(persistRun(i, f.repository)).rejects.toThrow(/coaching summary/i)
+    expect(f.state.events).toEqual([])
+  })
+  it('rejects an overlong combined summary even when each field fits', async () => {
+    const i = input(); i.coaching.keyPositive = 'x'.repeat(700); i.coaching.keyConcern = 'x'.repeat(700); i.coaching.recommendation = 'x'.repeat(700)
+    const f = fake()
+    await expect(persistRun(i, f.repository)).rejects.toThrow(/coaching summary/i)
+    expect(f.state.events).toEqual([])
+  })
+  it('rejects audit-length shoe observations without touching original user notes', async () => {
+    const i = input(); i.shoeObservation = { notes: 'x'.repeat(501), mechanicsQuality: 'clean' }
+    const f = fake()
+    await expect(persistRun(i, f.repository)).rejects.toThrow(/shoe observation/i)
+    expect(f.state.events).toEqual([])
+  })
+  it('bounds generated provenance without limiting a genuine long user note', async () => {
+    const i = input(); i.power!.provenance = 'x'.repeat(301)
+    const f = fake()
+    await expect(persistRun(i, f.repository)).rejects.toThrow(/provenance.*300/i)
+    expect(f.state.events).toEqual([])
+  })
+  it('preserves genuine long user testimony verbatim while bounding only generated summaries', async () => {
+    const i = input(); i.userNote = 'Original user words. '.repeat(500)
+    const f = fake()
+    await persistRun(i, f.repository)
+    expect(f.state.committed?.run.notes).toBe(i.userNote)
+    expect(f.state.committed?.coaching.keyPositive).toBe(i.coaching.keyPositive)
+  })
   it('inserts the validated normalized mechanics enum, not the original text', async () => {
     const i=input();i.shoeObservation={notes:'fixture observation',mechanicsQuality:' Clean '}
     const f=fake();await persistRun(i,f.repository)
@@ -111,6 +142,14 @@ describe('persistence', () => {
     expect((await persistRun(i,fake().repository)).verified).toBe(true)
     Object.assign(i.activity.detail.summaryDTO,{averageHR:-1})
     await expect(persistRun(i,fake().repository)).rejects.toThrow(/metric/)
+  })
+  it('accepts signed Body Battery changes but rejects impossible deltas', async () => {
+    const i=input();Object.assign(i.activity.detail.summaryDTO,{differenceBodyBattery:-18})
+    expect((await persistRun(i,fake().repository)).verified).toBe(true)
+    Object.assign(i.activity.detail.summaryDTO,{differenceBodyBattery:-101})
+    await expect(persistRun(i,fake().repository)).rejects.toThrow(/differenceBodyBattery/)
+    Object.assign(i.activity.detail.summaryDTO,{differenceBodyBattery:101})
+    await expect(persistRun(i,fake().repository)).rejects.toThrow(/differenceBodyBattery/)
   })
   it('rounds validated power to schema integer watts rather than silently truncating in SQL', async () => {
     const i = input(); i.power!.averageW = 240.6; i.power!.maxW = 300.8; i.power!.laps[0].averageW = 241.4; i.power!.laps[0].maxW = 301.9
@@ -223,6 +262,14 @@ describe('persistence', () => {
 })
 
 describe('history', () => {
+  it('recognizes the explicit validated source wording used by October 1 without mixing secondary Garmin mentions', async () => {
+    const base = { shoeId, id: 'run', date: '2026-10-01', surface: null, paceSecPerKm: 300, powerW: 196, effort: 'easy', comfort: null }
+    const sql = { unsafe: async () => [
+      { ...base, evidence: 'Power source: validated Stryd Zones/Connect IQ. Separately labeled Garmin directPower summary 260 W, not interchangeable.' },
+      { ...base, evidence: 'Power source: validated Stryd; Power source: garmin' },
+    ] }
+    expect((await loadHistory(sql)).map(r => r.powerSource)).toEqual(['stryd', 'unknown'])
+  })
   it('labels power only from explicit source evidence, not watts or sensor mentions', async () => {
     const base = { shoeId: 'shoe', id: 'run', date: '2026-10-01', surface: null, paceSecPerKm: 300, powerW: 250, effort: 'base', comfort: null }
     const sql = { unsafe: async () => [

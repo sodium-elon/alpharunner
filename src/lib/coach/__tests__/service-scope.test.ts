@@ -10,22 +10,47 @@ import type { GarminGateway } from '../garmin'
 import type { DecisionRunner } from '../jev-client'
 const env = (root:string) => ({stateRoot:root,garminExecutable:'/unused',garminTokenStore:'/unused'}) as CoachEnvironment
 
-it('never passes completed calendar activities off as a prescribed plan', async()=>{
+it.each(['2026-10-02','2026-10-02T00:00:00'])('passes only the target-date Garmin adaptive workout (%s) to the runner as a prescribed plan', async(calendarDate)=>{
   const root=await mkdtemp(join(tmpdir(),'coach-plan-'))
   try {
-    const planned={date:'2026-10-02',itemType:'adaptiveWorkout',title:'Base'}
+    const planned={date:calendarDate,itemType:'fbtAdaptiveWorkout',title:'Base',id:456,trainingPlanId:789,workoutUuid:'target-workout',duration:1800,distance:5000}
     const gateway={fetchActivity:vi.fn(async()=>({
       activity:{listItem:{activityId:123,activityName:'Base'},detail:{activityId:123,summaryDTO:{startTimeLocal:'2026-10-02 10:00:00',startTimeGMT:'2026-10-02T10:00:00Z',distance:1000,duration:360}},splits:{lapDTOs:[{distance:500,duration:180},{distance:500,duration:180}]},hrZones:[]},details:{},
-      context:{calendar:[{date:'2026-10-02',itemType:'activity',title:'Completed Sprint'},planned],readiness:[],sleep:null,errors:[]}
+      context:{calendar:[{date:'2026-10-02',itemType:'activity',title:'Completed Sprint'},{...planned,date:'2026-10-01',workoutUuid:'previous-workout'},planned,{...planned,date:'2026-10-03',workoutUuid:'next-workout'}],readiness:[],sleep:null,errors:[]}
     }))} as unknown as GarminGateway
     const runner:DecisionRunner=async request=>{
       expect((request.state as {plan:unknown}).plan).toEqual([planned])
       return {model:'fixture',answers:Object.fromEntries(Object.entries(request.questions).map(([key,q])=>{
+        if(q.type==='noul') return [key,{type:'noul',noul:0}]
         if(q.type!=='choice')throw new Error('choice fixture only')
-        return [key,{type:'choice',choice:'unknown',confidence:1,probabilities:Object.fromEntries(Object.keys(q.criteria).map(k=>[k,k==='unknown'?1:0]))}]
+        return [key,{type:'choice',choice:key==='brief_comparator'?'none':'unknown',confidence:1,probabilities:Object.fromEntries(Object.keys(q.criteria).map(k=>[k,k===(key==='brief_comparator'?'none':'unknown')?1:0]))}]
       }))}
     }
     await dispatchCoachCommand(['analyze-run','--date','2026-10-02','--activity-id','123'],createCoachServices(env(root),{runner,gateway}))
+  }finally{await rm(root,{recursive:true,force:true})}
+})
+it.each([{calendar:[]},{calendar:[
+  {date:'2026-10-02',itemType:'activity',title:'Completed Base'},
+  {date:'2026-10-01',itemType:'fbtAdaptiveWorkout',title:'Previous Base'},
+  {date:'2026-10-03',itemType:'fbtAdaptiveWorkout',title:'Next Base'},
+]}])('passes an explicit empty plan when no target-date prescription exists (%j)',async({calendar})=>{
+  const root=await mkdtemp(join(tmpdir(),'coach-no-plan-'))
+  try {
+    const gateway={fetchActivity:vi.fn(async()=>({
+      activity:{listItem:{activityId:123,activityName:'Base'},detail:{activityId:123,summaryDTO:{startTimeLocal:'2026-10-02 10:00:00',startTimeGMT:'2026-10-02T10:00:00Z',distance:1000,duration:360}},splits:{lapDTOs:[{distance:500,duration:180},{distance:500,duration:180}]},hrZones:[]},details:{},
+      context:{calendar,readiness:[],sleep:null,errors:[]}
+    }))} as unknown as GarminGateway
+    const runner:DecisionRunner=async request=>{
+      expect(request.state).toHaveProperty('plan',[])
+      return {model:'fixture',answers:Object.fromEntries(Object.entries(request.questions).map(([key,q])=>{
+        if(q.type==='noul') return [key,{type:'noul',noul:0}]
+        if(q.type!=='choice')throw new Error('choice fixture only')
+        return [key,{type:'choice',choice:key==='brief_comparator'?'none':'unknown',confidence:1,probabilities:Object.fromEntries(Object.keys(q.criteria).map(k=>[k,k===(key==='brief_comparator'?'none':'unknown')?1:0]))}]
+      }))}
+    }
+    const openRepository=vi.fn(() => ({sql:{unsafe:vi.fn(async()=>[])},close:vi.fn(async()=>{})}))
+    await dispatchCoachCommand(['analyze-run','--date','2026-10-02','--activity-id','123'],createCoachServices(env(root),{runner,gateway,openRepository:openRepository as any}))
+    expect(openRepository).toHaveBeenCalledTimes(1)
   }finally{await rm(root,{recursive:true,force:true})}
 })
 it('rejects a stale coaching file from another task before Garmin or database access',async()=>{

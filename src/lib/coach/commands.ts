@@ -3,13 +3,16 @@ import { z } from 'zod'
 const specifications = {
   route: { required: ['text'], optional: [] },
   inventory: { required: [], optional: [] },
+  'run-summary': { required: ['date'], optional: ['activity-id'] },
+  'prepare-correction': { required: ['date', 'term', 'user-request'], optional: ['activity-id'] },
+  'correct-shoe-task': { required: ['task-id'], optional: [] },
   prepare: { required: ['date', 'term', 'user-request'], optional: ['activity-id'] },
   'resolve-shoe': { required: ['term'], optional: [] },
   'recommend-shoes': { required: ['purpose'], optional: ['surface', 'pace', 'power-source'] },
   'analyze-run': { required: ['activity-id', 'date'], optional: ['user-intent', 'note'] },
   note: { required: ['text', 'source'], optional: [] },
   'task-create': { required: ['date', 'activity-id', 'shoe-id', 'user-request'], optional: [] },
-  'task-confirm': { required: ['task-id', 'date', 'activity-id', 'shoe-id', 'source-message-id', 'answer'], optional: [] },
+  'task-confirm': { required: ['task-id', 'date', 'activity-id', 'shoe-id', 'source-message-id', 'answer'], optional: ['operation', 'run-id', 'old-shoe-id'] },
   'task-show': { required: ['task-id'], optional: [] },
   'import-task': { required: ['task-id', 'coaching-file'], optional: [] },
 } satisfies Record<string, { required: string[]; optional: string[] }>
@@ -37,7 +40,12 @@ export function parseCoachCommand(raw: string[]): { name: CoachCommand | 'help';
   for (const key of spec.required) if (!options[key]?.trim()) throw new Error(`Required option: --${key}`)
   if (options.date) z.iso.date().parse(options.date)
   if (options['activity-id'] && !/^\d+$/.test(options['activity-id'])) throw new Error('Garmin activity ID must be numeric')
-  for (const key of ['shoe-id', 'task-id']) if (options[key] && !uuid.test(options[key])) throw new Error(`${key} must be a database UUID`)
+  for (const key of ['shoe-id', 'task-id', 'run-id']) if (options[key] && !uuid.test(options[key])) throw new Error(`${key} must be a database UUID`)
+  if (options['old-shoe-id'] && options['old-shoe-id'] !== 'none' && !uuid.test(options['old-shoe-id'])) throw new Error('old-shoe-id must be a database UUID or none')
+  if (options.operation && !['import', 'correct_run_shoe'].includes(options.operation)) throw new Error('Invalid task operation')
+  if (options.operation === 'correct_run_shoe') {
+    for (const key of ['run-id', 'old-shoe-id']) if (!options[key]) throw new Error(`Correction confirmation requires --${key}`)
+  }
   if (options.source && !['user', 'coach', 'history'].includes(options.source)) throw new Error('Note source must be user, coach or history')
   if (options.answer && !['yes', 'no'].includes(options.answer)) throw new Error('Confirmation answer must be yes or no')
   if (options.pace && (!/^\d+(?:\.\d+)?$/.test(options.pace) || !Number.isFinite(Number(options.pace)) || Number(options.pace) <= 0)) throw new Error('Pace must be positive seconds per km')
