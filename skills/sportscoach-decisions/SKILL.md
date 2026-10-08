@@ -11,6 +11,20 @@ Invoke `pnpm --dir /home/john/projects/alpharunner.workspace/alpharunner -s coac
 
 Use these existing handlers. Never create a temporary JS/TS script, rediscover Garmin schemas, or run builds/tests simply to import/analyze a run. Builds/tests are for code changes, not routine coaching.
 
+## Current-request scope
+
+Before any lookup, routing, preparation or task recovery, anchor this operation to the current receipt: preserve its original text, request/message/event ID, receipt timestamp, explicit date, named shoe and requested operation. The current request ID, receipt timestamp and explicit date outrank compressed summaries, previous conversation state and archived task context. Resolve a relative date only from that receipt's timestamp and user timezone; never replace an explicit date with yesterday, a previous run or the retry clock. If the current receipt is unavailable or contradictory, ask for the missing scope instead of borrowing history.
+
+Never reopen archived receipts or previous requests to reconstruct the current operation. Restore with `task-show` only for a task demonstrably linked to this current request, and compare its original request, operation, date, activity and shoe before continuing. A historical task with different scope is not a continuation. Never volunteer an old run's speed or shoe when handling a current import/clarification; historical comparisons belong only to explicitly requested analysis and must stay labelled as history.
+
+For example, the current voice text `here is for running coach: 2026-10-08 kinabaro 16` pins the date to `2026-10-08`, not 2026-10-07. Shoe uncertainty does not make the date uncertain: look up/prepare only October eighth and ask only the unresolved shoe question. Do not query October seventh or reuse its receipt, measurements or worn shoe to fill today's scope.
+
+Reuse a verified current candidate from CLI inventory/resolution or the current task, with its actual shoe ID/model and provenance; do not repeat uncertain semantic resolution merely to phrase the same clarification or after the user has answered it. Verified candidate identity is not proof it was worn: `clarify`/`no_match` remain unresolved, split/low-confidence/unknown results still require review, and history alone never assigns a shoe. If the current evidence supports the clarification candidate Saucony Kinvara 16, ask that bounded question once for October eighth. Reuse the candidate only while its identity and current request linkage remain valid; changed/conflicting evidence requires fresh review, not a forced winner.
+
+A native confirmation answer package contains original current request + Coach question + User answer. Read all three together, preserving the original receipt provenance and the actual answer event ID. A one-shot yes/no applies only to that question and current scope: yes to a shoe clarification resolves only that named candidate for the original date/operation; no rejects it, never selects a historical alternative. It never authorizes a different date, shoe or task. Check the current task's exact scope and existing authorization requirements before `task-confirm`; a clarification answer is not blanket write permission. Missing/mismatched linkage requires clarification, not replaying another task's yes or searching old receipts. Do not re-ask already answered scope or re-confirm already approved facts.
+
+These are current-request guidance and continuity checks, not cryptographic enforcement. `prepare` respects the supplied date; the caller must supply and compare the current date correctly. Keep existing uncertainty gates, transport identity/permissions and pending deadlines unchanged; never invent provenance or extend approval to recover from a mismatch.
+
 ## Quick read-only facts
 
 For one run's speed, pace, distance, duration, HR, cadence, power or worn shoe,
@@ -108,7 +122,19 @@ Write the REAL coaching outcome as JSON data (not generated code):
 ```
 {"taskId":"EXACT confirmed task UUID","coaching":{"effortLabel":"base","intentMatch":"on_target","hrReliability":"questionable","keyPositive":"actual evidence","keyConcern":"actual limitation","recommendation":"actual actionable advice"},"shoeObservation":{"notes":"actual shoe-specific observation","mechanicsQuality":"clean"},"userNote":"only original user text if supplied"}
 ```
-Use actual normalized allowed labels from the legacy coaching/import reference; these example values are not defaults. No placeholder prose, invented comfort, injury probability, fake confirmation, or source claims. The importer adds measured power provenance itself.
+Allowed enum fields (use one exact value, never a descriptive sentence):
+- `coaching.effortLabel`: `too_easy`, `easy`, `base`, `steady`, `tempo`, `hard`, `race_effort`.
+- `coaching.intentMatch`: `on_target`, `harder_than_intended`, `easier_than_intended`, `unknown`.
+- `coaching.hrReliability`: `reliable`, `questionable`, `unreliable`.
+- `shoeObservation.mechanicsQuality`: `clean`, `neutral`, `sloppy`, `unknown`.
+
+Put mechanics descriptions such as “Stable over full kilometres; no late mechanical
+collapse” in `shoeObservation.notes`, not `mechanicsQuality`. Select a label only
+when supported by the analysis; use `unknown` when evidence is insufficient.
+Check every enum and text-length bound before calling `import-task`, so a correct
+Garmin payload is not blocked by malformed generated coaching. These example
+values are not defaults. No placeholder prose, invented comfort, injury probability,
+fake confirmation, or source claims. The importer adds measured power provenance itself.
 `import-task --task-id <CONFIRMED id> --coaching-file <JSON path>` uses verified Garmin evidence and a transactional import. All run/lap/zone/coaching/shoe rows and source-labeled power are checked before commit; mileage is recomputed from real runs. Matching existing imports are verified, not overwritten; conflicting scope fails. Report success only from `verified:true` and actual counts. Failed/running tasks require reconciliation, not a new blind claim.
 
 ## Ownership, credentials and fallback
