@@ -18,9 +18,10 @@ const versions = (s: string): string[] => (s.match(/\d+(?:\.\d+)?/g) ?? []).map(
 
 export type ShoeIdentityOptions = { minConfidence?: number; minProbability?: number; minMargin?: number }
 export async function resolveShoe(term: string | null | undefined, candidates: ShoeCandidate[], runner: DecisionRunner, options: ShoeIdentityOptions = {}): Promise<ShoeResolution> {
-  const minConfidence = options.minConfidence ?? 0.85
-  const minProbability = options.minProbability ?? 0.85
-  const minMargin = options.minMargin ?? 0.2
+  // Accept a clear resolver pick; reserve clarification for weak or split choices.
+  const minConfidence = options.minConfidence ?? 0.5
+  const minProbability = options.minProbability ?? 0.5
+  const minMargin = options.minMargin ?? 0.1
   if (![minConfidence, minProbability, minMargin].every(v => Number.isFinite(v) && v >= 0 && v <= 1) || minConfidence < 0.5 || minProbability < 0.5 || minMargin < 0.1) throw new Error('Invalid identity thresholds')
   const text = normalize(term ?? '')
   const base: ShoeResolution = { status: 'no_match', shoeId: null, source: 'exact', term: term ?? null, candidateIds: [], uncertainty: 'missing_or_unknown_term' }

@@ -25,6 +25,9 @@ it('keeps the current voice receipt scoped through shoe clarification and one-sh
     'clarify`/`no_match` remain unresolved',
     'original current request + Coach question + User answer',
     'A one-shot yes/no applies only to that question and current scope',
+    'Use a matched resolver shoe directly without routine reconfirmation',
+    'do not second-guess its raw confidence',
+    'native LogRun transport is already an instruction to log',
     'never authorizes a different date, shoe or task',
     'not cryptographic enforcement',
   ]) {
