@@ -4,7 +4,7 @@
   "private": true,
   "description": "AlphaRunner MVP - dashboard and control center for tracking runs",
   "type": "module",
-  "packageManager": "pnpm@10.33.0",
+  "packageManager": "pnpm@12.11.2+sha512.25a51652a196785af5f28bda6dfe8dc582ebefa4ac1d180221ce1390231c5fb76637822ea4b6e4633ce74acdcb0a77f725af11bad38177fdeddaee818a955cb9",
   "scripts": {
     "coach": "tsx scripts/coach.ts",
     "predev": "lsof -ti:3000 | xargs kill -9 2>/dev/null || true",
