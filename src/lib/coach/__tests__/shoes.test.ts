@@ -59,6 +59,15 @@ it('offers the real inventory for a garbled brand instead of rejecting it lexica
   }
   expect(await resolveShoe('kjordan', pool, runner)).toMatchObject({ status: 'matched', shoeId: 'leili', source: 'jev' })
 })
+it('accepts a clear inventory choice for a garbled shoe without routine confirmation', async () => {
+  const decision = { type: 'choice' as const, choice: 'kinvara', confidence: .74, probabilities: { kinvara: .83, none: .12, unknown: .05 } }
+  const runner: DecisionRunner = async () => ({ model: 'test', answers: { shoe: decision } })
+  expect(await resolveShoe('kindergarten 16', candidates, runner)).toMatchObject({
+    status: 'matched', shoeId: 'kinvara', source: 'jev', uncertainty: null, decision,
+  })
+  expect(await resolveShoe('kindergarten 16', candidates, runner, { minConfidence: .85, minProbability: .85 })).toMatchObject({ status: 'clarify', shoeId: null })
+})
+
 it('does not recommend a candidate with a strongly evidenced conflict', async () => {
   const runner: DecisionRunner = async () => ({ model: 'test', answers: { suitability: score(3), evidenceStrength: score(3), contraindication: {type:'noul',noul:.99}, requestMismatch:{type:'noul',noul:.01} } })
   const result = await recommendShoes(input, evidenced, runner)

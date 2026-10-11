@@ -137,11 +137,41 @@ describe('persistence', () => {
     const f=fake();await persistRun(i,f.repository)
     expect(f.state.committed?.shoeObservation.mechanicsQuality).toBe('clean')
   })
+  it('rejects descriptive prose in mechanicsQuality before opening a transaction', async () => {
+    const i = input(); i.shoeObservation = { notes: 'Fixture observation', mechanicsQuality: 'Stable over full kilometres; no late mechanical collapse.' }
+    const f = fake()
+    await expect(persistRun(i, f.repository)).rejects.toThrow()
+    expect(f.state.events).toEqual([])
+  })
+  it.each(['clean', 'neutral', 'sloppy', 'unknown'])('accepts the supported mechanicsQuality label %s', async mechanicsQuality => {
+    const i = input(); i.shoeObservation = { notes: 'Fixture observation', mechanicsQuality }
+    expect((await persistRun(i, fake().repository)).verified).toBe(true)
+  })
   it('accepts valid signed geography and elevation without accepting negative physiological metrics', async () => {
     const i=input();Object.assign(i.activity.detail.summaryDTO,{startLatitude:-23.6,startLongitude:-46.6,minElevation:-500})
     expect((await persistRun(i,fake().repository)).verified).toBe(true)
     Object.assign(i.activity.detail.summaryDTO,{averageHR:-1})
     await expect(persistRun(i,fake().repository)).rejects.toThrow(/metric/)
+  })
+  it.each(['listItem', 'summaryDTO', 'lap'])('accepts Garmin avgElevation and avgTemperature aliases in %s', async location => {
+    const i = input()
+    const metrics = location === 'listItem' ? i.activity.listItem : location === 'summaryDTO' ? i.activity.detail.summaryDTO : i.activity.splits.lapDTOs[0]
+    Object.assign(metrics, { avgElevation: -500, avgTemperature: -5 })
+    expect((await persistRun(i, fake().repository)).verified).toBe(true)
+  })
+  it.each(['distance', 'duration', 'averageSpeed', 'averageHR', 'averagePower', 'elevationGain', 'elevationLoss', 'avgElevationGain', 'unknownTemperature'])('still rejects negative unsigned metric %s before opening a transaction', async key => {
+    const i = input(); Object.assign(i.activity.detail.summaryDTO, { [key]: -1 })
+    const f = fake()
+    await expect(persistRun(i, f.repository)).rejects.toThrow(`Invalid metric range: ${key}`)
+    expect(f.state.events).toEqual([])
+  })
+  it.each([NaN, Infinity, -Infinity])('rejects non-finite signed aliases (%s) before opening a transaction', async value => {
+    for (const key of ['avgElevation', 'avgTemperature']) {
+      const i = input(); Object.assign(i.activity.detail.summaryDTO, { [key]: value })
+      const f = fake()
+      await expect(persistRun(i, f.repository)).rejects.toThrow(`Invalid metric range: ${key}`)
+      expect(f.state.events).toEqual([])
+    }
   })
   it('accepts signed Body Battery changes but rejects impossible deltas', async () => {
     const i=input();Object.assign(i.activity.detail.summaryDTO,{differenceBodyBattery:-18})

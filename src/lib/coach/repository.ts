@@ -55,7 +55,7 @@ function validateInput(input: PersistRunInput): {coaching:PersistRunInput['coach
       const latitude=/(?:Lat|Latitude)$/i.test(key),longitude=/(?:Lng|Longitude)$/i.test(key)
       const coordinate=latitude||longitude
       const bodyBatteryChange=key==='differenceBodyBattery'
-      const signed=coordinate||bodyBatteryChange||/^(?:(?:min|max|average))?(?:Elevation|Temperature)$/i.test(key)
+      const signed=coordinate||bodyBatteryChange||/^(?:min|max|avg|average)?(?:Elevation|Temperature)$/i.test(key)
       if (!Number.isFinite(value) || (!signed && value < 0) || (coordinate && Math.abs(value) > (latitude ? 90 : 180))) throw new Error(`Invalid metric range: ${key}`)
       if (bodyBatteryChange && Math.abs(value) > 100) throw new Error(`Invalid metric range: ${key}`)
       if (/HR$/.test(key) && value > 250) throw new Error(`Invalid HR range: ${key}`)
