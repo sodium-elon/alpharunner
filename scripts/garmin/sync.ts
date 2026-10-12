@@ -61,7 +61,7 @@ function validateStagedData(staged: GarminStagedFile): void {
 
   if (errors.length > 0) {
     throw new Error(
-      `Validation failed: Garmin Activity IDs must be numeric strings from Garmin API (e.g., "23309398061"), never UUIDs.\n` +
+      'Validation failed: Garmin Activity IDs must be numeric strings from Garmin API (e.g., "23309398061"), never UUIDs.\n' +
         errors.map(e => `  - ${e}`).join('\n') +
         '\n\n' +
         'To fix: Ensure staged data is generated from Garmin MCP list_activities() and includes listItem.activityId.'

@@ -6,7 +6,7 @@ import { parse } from 'dotenv'
 
 export type CoachEnvironment = Awaited<ReturnType<typeof loadCoachEnvironment>>
 
-export interface EnvironmentOptions {
+export type EnvironmentOptions = {
   projectEnv?: string
   sharedEnv?: string
   processEnv?: NodeJS.ProcessEnv

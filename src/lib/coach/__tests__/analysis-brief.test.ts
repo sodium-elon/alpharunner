@@ -1,7 +1,9 @@
 import { expect, it, vi } from 'vitest'
 import { createCoachServices } from '../service'
 import type { CoachEnvironment } from '../environment'
-import type { GarminGateway } from '../garmin'
+import type { GarminGateway, GarminEvidence } from '../garmin'
+import type { PostgresRepository } from '../repository'
+import type { AnalysisContext, parseAnalysisBrief } from '../analysis-brief'
 import type { DecisionRequest, DecisionResponse } from '../jev-client'
 
 const environment = { stateRoot: '/unused', garminExecutable: '/unused', garminTokenStore: '/unused' } as CoachEnvironment
@@ -15,11 +17,11 @@ function answer(request: DecisionRequest): DecisionResponse {
     return [key, { type: 'choice', choice: selected, confidence: 1, probabilities: Object.fromEntries(Object.keys(q.criteria).map(k => [k, k === selected ? 1 : 0])) }]
   })) }
 }
-async function analyze(overrides: { context?: typeof context; respond?: (r: DecisionRequest) => DecisionResponse; openRepository?: any; activity?: unknown } = {}) {
+async function analyze(overrides: { context?: GarminEvidence['context']; respond?: (r: DecisionRequest) => DecisionResponse; openRepository?: () => Pick<PostgresRepository, 'close'> & { sql: { unsafe: (...args: never[]) => Promise<unknown[]> } }; activity?: unknown } = {}) {
   const runner = vi.fn(async (request: DecisionRequest) => (overrides.respond ?? answer)(request))
   const gateway = { fetchActivity: vi.fn(async () => ({ activity: overrides.activity ?? activity, details: {}, context: overrides.context ?? context })) } as unknown as GarminGateway
-  const services = createCoachServices(environment, { runner, gateway, openRepository: overrides.openRepository })
-  const result = await services['analyze-run']!({ date: '2026-10-03', 'activity-id': '123', 'user-intent': 'easy base' }) as any
+  const services = createCoachServices(environment, { runner, gateway, openRepository: overrides.openRepository as (() => PostgresRepository) | undefined })
+  const result = await services['analyze-run']!({ date: '2026-10-03', 'activity-id': '123', 'user-intent': 'easy base' }) as { analysisBrief: ReturnType<typeof parseAnalysisBrief>; judgments: unknown }
   return { result, runner, gateway }
 }
 
@@ -33,7 +35,7 @@ it.each([false, true])('bounds same-date recovery evidence and gates unsupported
     ],
     sleep: { dailySleepDTO: { calendarDate: observed ? '2026-10-03' : '2026-10-02', sleepTimeSeconds: 20000, sleepScoreFeedback: 'NON_RESTORATIVE' }, sleepMovement: Array(10000).fill('PRIVATE_TELEMETRY') },
   }
-  const { result, runner } = await analyze({ context: recoveryContext as any, respond: request => {
+  const { result, runner } = await analyze({ context: recoveryContext, respond: request => {
     const response = answer(request)
     if (response.answers.brief_focus?.type === 'choice') {
       response.answers.brief_focus.choice = 'recovery_context'
@@ -42,7 +44,7 @@ it.each([false, true])('bounds same-date recovery evidence and gates unsupported
     if (response.answers.brief_recovery) response.answers.brief_recovery = { type: 'noul', noul: observed ? .93 : .05 }
     return response
   } })
-  const state = runner.mock.calls[0][0].state as any
+  const state = runner.mock.calls[0][0].state as { analysisContext: AnalysisContext }
   expect(state.analysisContext.wakeupReadiness?.score ?? null).toBe(observed ? 33 : null)
   expect(state.analysisContext.sleep?.calendarDate ?? null).toBe(observed ? '2026-10-03' : null)
   expect(JSON.stringify(state)).not.toContain('PRIVATE_TELEMETRY')
@@ -73,7 +75,7 @@ it('uses current DB shoe identity and prior 7/14/28-day load, retaining two unce
   expect(result.analysisBrief.priorLoad['7']).toMatchObject({ runs: 1, distanceKm: 3, sourceRunIds: ['recent'] })
   expect(result.analysisBrief.priorLoad['14'].distanceKm).toBe(3)
   expect(result.analysisBrief.priorLoad['28'].distanceKm).toBe(12)
-  expect(result.analysisBrief.comparatorsToOpen.map((c: any) => c.id)).toEqual(['sept10', 'sept8'])
+  expect(result.analysisBrief.comparatorsToOpen).toEqual([expect.objectContaining({ id: 'sept10' }), expect.objectContaining({ id: 'sept8' })])
   expect(JSON.stringify(runner.mock.calls[0][0].state)).not.toMatch(/same-day|future|cycling/)
   expect(openRepository).toHaveBeenCalledTimes(1)
   expect(close).toHaveBeenCalledTimes(1)
@@ -98,8 +100,8 @@ it.each(['failure', 'missing'])('preserves descriptive analysis when optional re
 it('always retains the domain source floor and exact worn-shoe reference independently of optional rankings', async () => {
   const current = { runId: 'current', activityId: '123', date: '2026-10-03', shoeId: 'worn', brand: 'Qiaodan', model: 'Leili 2.0' }
   const { result, runner } = await analyze({ openRepository: () => ({ sql: { unsafe: vi.fn(async (q: string) => q.includes('r.date=$1') ? [current] : []) }, close: vi.fn(async () => {}) }) })
-  expect(result.analysisBrief.mandatorySources.map((s: any) => s.path.split('/').at(-1))).toEqual(expect.arrayContaining(['legacy-workflow.md', 'john-shoe-rotation.md', 'shoe-rotation-evidence.md', 'garmin-single-run-analysis.md', 'qiaodan-leili-2.md']))
-  expect(result.analysisBrief.mandatorySources.every((s: any) => s.status === 'available')).toBe(true)
+  expect(result.analysisBrief.mandatorySources.map(s => s.path.split('/').at(-1))).toEqual(expect.arrayContaining(['legacy-workflow.md', 'john-shoe-rotation.md', 'shoe-rotation-evidence.md', 'garmin-single-run-analysis.md', 'qiaodan-leili-2.md']))
+  expect(result.analysisBrief.mandatorySources.every(s => s.status === 'available')).toBe(true)
   expect(result.analysisBrief.optionalSources).toEqual([])
   expect(runner.mock.calls[0][0].questions).toHaveProperty('brief_ref_sprint-session-recognition')
   expect(result.analysisBrief.gaps).toContain('historical_power_requires_source_validation')

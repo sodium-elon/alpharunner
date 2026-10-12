@@ -19,6 +19,32 @@ AlphaRunner is an MVP dashboard and control center for John's running data.
 - shadcn/ui
 - pnpm
 
+## Development quality gates
+
+After installing dependencies, install the repository's Git hooks:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm prepare
+```
+
+`prepare` installs Lefthook's pre-commit and pre-push hooks. It is also the
+package lifecycle script for package managers that execute it during installation;
+run it explicitly if your package-manager policy skips lifecycle scripts.
+
+- `pnpm lint` checks all hand-written JS/TS files and treats warnings as failures.
+- `pnpm lint:fix` fixes safe ESLint issues, including quoting and semicolons.
+- `pnpm typecheck` checks TypeScript without emitting files.
+- `pnpm test:run` runs the test suite once (unlike the watch-mode `pnpm test`).
+- Pre-commit runs full-repository lint; pre-push runs lint, types, and tests.
+- GitHub Actions runs the same checks on pull requests and pushes to `main`.
+
+Style: single quotes in JavaScript/TypeScript (double quotes only to avoid
+escaping), double quotes in JSX attributes, no statement-ending semicolons,
+and `type` declarations rather than interfaces. Generated artifacts are excluded.
+The shared VS Code settings enable ESLint fixes on save when the ESLint extension
+is installed; hooks remain the editor-independent enforcement.
+
 ## Project structure
 
 - `src/db/` - database schema and db helpers

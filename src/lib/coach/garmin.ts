@@ -12,7 +12,7 @@ const defaultExecute: GarminExecutor = async (executable, args) => {
   const { stdout } = await executeFile(executable, args, { timeout: 120000, maxBuffer: 32 * 1024 * 1024 })
   return stdout
 }
-export interface GarminEvidence {
+export type GarminEvidence = {
   activity: GarminStagedActivity
   details: Record<string, unknown>
   context: { calendar: Record<string, unknown>[]; readiness: unknown; sleep: unknown; errors: string[] }

@@ -1,4 +1,4 @@
-import { defineConfig } from "drizzle-kit";
+import { defineConfig } from 'drizzle-kit'
 
 const configuredSchema = process.env.DB_SCHEMA?.trim()
 const schemaFilter = configuredSchema && configuredSchema.toLowerCase() !== 'public'
