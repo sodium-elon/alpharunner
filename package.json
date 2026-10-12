@@ -33,7 +33,9 @@
     "best-run": "dotenv -e ../env-profiles/local.env -- tsx scripts/best-run.ts",
     "test": "vitest",
     "test:coach:postgres": "dotenv -e ../env-profiles/local.env -- tsx scripts/verify-coach-correction.mjs",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
@@ -64,6 +66,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
+    "@storybook/react-vite": "^10.6.1",
     "@tanstack/react-query-devtools": "^5.91.2",
     "@types/node": "^25.0.3",
     "@types/react": "^19.2.7",
@@ -75,6 +78,7 @@
     "eslint": "^9.39.2",
     "globals": "^17.0.0",
     "msw": "^2.14.2",
+    "storybook": "^10.6.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.53.0",

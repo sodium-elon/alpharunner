@@ -30,6 +30,8 @@ export default defineConfig({
     host,
     port,
     allowedHosts: ['.anthood.net', '.localhost'],
+    // The public preview passes through a CDN; never cache mutable dev assets.
+    headers: { 'Cache-Control': 'no-store' },
   },
   plugins: [
     tsconfigPaths(),
