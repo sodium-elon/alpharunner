@@ -1,4 +1,4 @@
-import { ChevronLeftIcon, ChevronRightIcon, ChevronsRightIcon } from 'lucide-react'
+import { AppIcon } from './app-icon'
 import type * as React from 'react'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
@@ -56,13 +56,16 @@ export function WindowPager({
   return (
     <section
       className={cn(
-        'ar-card ar-card-pad flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between',
+        'ar-window-pager ar-card ar-card-pad flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between',
         className,
       )}
       aria-label={`${scopeLabel} selection`}
     >
       <div className="flex flex-wrap items-center gap-3">
-        <span className="ar-label">{scopeLabel}</span>
+        <span className="ar-label ar-icon-label">
+          <AppIcon name="calendar" size={18} />
+          {scopeLabel}
+        </span>
         <ButtonGroup>
           <Button
             variant="outline"
@@ -72,24 +75,37 @@ export function WindowPager({
             disabled={!olderOption}
             onClick={() => olderOption && onValueChange(olderOption.value)}
           >
-            <ChevronLeftIcon />
+            <AppIcon name="chevronLeft" />
           </Button>
           <Select
-            items={options.map((option) => ({ value: option.value, label: option.label }))}
+            items={options.map((option) => ({
+              value: option.value,
+              label: option.label,
+            }))}
             value={value}
             onValueChange={(next) => {
               if (typeof next === 'string') onValueChange(next)
             }}
           >
-            <SelectTrigger size="sm" className="min-w-44 font-medium" aria-label={`Select ${scopeLabel.toLowerCase()}`}>
+            <SelectTrigger
+              size="sm"
+              className="min-w-44 font-medium"
+              aria-label={`Select ${scopeLabel.toLowerCase()}`}
+            >
               <SelectValue />
             </SelectTrigger>
-            <SelectContent align="start" alignItemWithTrigger={false} className="w-auto min-w-64">
+            <SelectContent
+              align="start"
+              alignItemWithTrigger={false}
+              className="w-auto min-w-64"
+            >
               <SelectGroup>
                 {options.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     <span>{option.label}</span>
-                    {option.hint ? <span className="ml-auto ar-helper">{option.hint}</span> : null}
+                    {option.hint ? (
+                      <span className="ml-auto ar-helper">{option.hint}</span>
+                    ) : null}
                   </SelectItem>
                 ))}
               </SelectGroup>
@@ -103,7 +119,7 @@ export function WindowPager({
             disabled={!newerOption}
             onClick={() => newerOption && onValueChange(newerOption.value)}
           >
-            <ChevronRightIcon />
+            <AppIcon name="chevronRight" />
           </Button>
         </ButtonGroup>
 
@@ -112,9 +128,13 @@ export function WindowPager({
             Latest
           </Badge>
         ) : latestOption ? (
-          <Button variant="ghost" size="sm" onClick={() => onValueChange(latestOption.value)}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onValueChange(latestOption.value)}
+          >
             Jump to latest
-            <ChevronsRightIcon data-icon="inline-end" />
+            <AppIcon name="latest" />
           </Button>
         ) : null}
       </div>

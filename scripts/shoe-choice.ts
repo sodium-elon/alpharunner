@@ -132,7 +132,7 @@ let ans
 try {
   if (!tsKey) throw new Error('no TYPESAFE key')
   ans = await post(TYPESAFE_ENDPOINT, tsKey!)
-} catch (primary) {
+} catch {
   if (!orKey) {
     console.log('TypeSafe failed and no OpenRouter fallback key.')
     exit(1)

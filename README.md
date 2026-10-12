@@ -19,6 +19,32 @@ AlphaRunner is an MVP dashboard and control center for John's running data.
 - shadcn/ui
 - pnpm
 
+## Development quality gates
+
+After installing dependencies, install the repository's Git hooks:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm prepare
+```
+
+`prepare` installs Lefthook's pre-commit and pre-push hooks. It is also the
+package lifecycle script for package managers that execute it during installation;
+run it explicitly if your package-manager policy skips lifecycle scripts.
+
+- `pnpm lint` checks all hand-written JS/TS files and treats warnings as failures.
+- `pnpm lint:fix` fixes safe ESLint issues, including quoting and semicolons.
+- `pnpm typecheck` checks TypeScript without emitting files.
+- `pnpm test:run` runs the test suite once (unlike the watch-mode `pnpm test`).
+- Pre-commit runs full-repository lint; pre-push runs lint, types, and tests.
+- GitHub Actions runs the same checks on pull requests and pushes to `main`.
+
+Style: single quotes in JavaScript/TypeScript (double quotes only to avoid
+escaping), double quotes in JSX attributes, no statement-ending semicolons,
+and `type` declarations rather than interfaces. Generated artifacts are excluded.
+The shared VS Code settings enable ESLint fixes on save when the ESLint extension
+is installed; hooks remain the editor-independent enforcement.
+
 ## Project structure
 
 - `src/db/` - database schema and db helpers
@@ -106,3 +132,30 @@ Garmin uses OAuth + MFA. Tokens are cached at `~/.garmin-connect-mcp/session.jso
 3. connect Drizzle to a local PostgreSQL database
 4. seed John's current shoe rotation
 5. add CRUD flows for runs, shoes, and coaching notes
+
+## UI component development
+
+Run `npm run storybook` to view the presentational training components on port 6006,
+or `npm run build-storybook` to build the catalog. Stories include long headings,
+missing metrics, shoes without runs, sessions without coaching, disclosures, and
+interactive history/trend selection.
+
+`src/components/training-ui.tsx` contains layout-only components. Routes own data
+loading, formatting, navigation, and selected views; components receive display
+props, callback handlers, and action slots. Existing shadcn primitives provide the
+buttons and period selector. The overview, history, session, and shoe screens share
+the same typography and design tokens in `src/app.css`.
+
+The start page defaults to mileage over the last seven calendar days, including today,
+in UTC. A controlled period selector also offers the current Monday–Sunday week.
+Both include all shoes and unassigned runs, exclude future runs, and show their exact
+date range. The server queries the seven-day window once and supplies both summaries;
+the route owns the selected period, while the weekly card remains presentational.
+Aggregation lives in `src/lib/weekly-mileage.ts`.
+The shared icon library uses Phosphor Bold, selected from [SVG Repo](https://www.svgrepo.com/collection/phosphor-bold-icons/).
+The 23 required SVGs are vendored from the original collection with their MIT license
+and source mapping in `THIRD_PARTY_NOTICES.md`. The wrapper lives in `src/components/app-icon.tsx`.
+Use `AppIcon` with a named glyph; icons inherit text color and are decorative
+by default. Keep visible labels on navigation and buttons. Use `label` only for
+a standalone icon that conveys meaning. The icon catalog and usage examples
+are available in Storybook.

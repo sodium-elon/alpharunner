@@ -1,9 +1,22 @@
+import { AppIcon } from '~/components/app-icon'
+import {
+  Metric as StatCard,
+  PageIntro,
+  DetailDisclosure,
+} from '~/components/training-ui'
 import * as React from 'react'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { asc, eq } from 'drizzle-orm'
 import { ChartContainer, type ChartConfig } from '~/components/ui/chart'
-import { getDb, runs, runLaps, hrZoneDistributions, coachingNotes, shoes } from '~/db'
+import {
+  getDb,
+  runs,
+  runLaps,
+  hrZoneDistributions,
+  coachingNotes,
+  shoes,
+} from '~/db'
 import { isMockMode, type RunDetailData } from '~/mocks/data'
 import { getMockBaseUrl } from '~/mocks/base-url'
 import { formatTrendPace } from '~/components/trend-line-chart'
@@ -26,7 +39,11 @@ const getRunDetail = createServerFn({ method: 'GET' })
 
     const db = await getDb()
 
-    const [run] = await db.select().from(runs).where(eq(runs.id, runId)).limit(1)
+    const [run] = await db
+      .select()
+      .from(runs)
+      .where(eq(runs.id, runId))
+      .limit(1)
     if (!run) throw new Error('Run not found')
 
     const [shoe] = run.shoeId
@@ -65,9 +82,14 @@ const getRunDetail = createServerFn({ method: 'GET' })
         maxHr: run.maxHr,
         avgCadence: run.avgCadence,
         avgPowerW: run.avgPowerW,
-        avgStrideLengthM: run.avgStrideLengthM == null ? null : Number(run.avgStrideLengthM),
-        verticalOscillationCm: run.verticalOscillationCm == null ? null : Number(run.verticalOscillationCm),
-        verticalRatioPct: run.verticalRatioPct == null ? null : Number(run.verticalRatioPct),
+        avgStrideLengthM:
+          run.avgStrideLengthM == null ? null : Number(run.avgStrideLengthM),
+        verticalOscillationCm:
+          run.verticalOscillationCm == null
+            ? null
+            : Number(run.verticalOscillationCm),
+        verticalRatioPct:
+          run.verticalRatioPct == null ? null : Number(run.verticalRatioPct),
         avgGroundContactMs: run.avgGroundContactMs,
         elevationGainM: run.elevationGainM,
         aerobicTe: run.aerobicTe == null ? null : Number(run.aerobicTe),
@@ -79,7 +101,9 @@ const getRunDetail = createServerFn({ method: 'GET' })
         notes: run.notes,
         garminActivityId: run.garminActivityId,
       },
-      shoe: shoe ? { brand: shoe.brand, model: shoe.model, variant: shoe.variant } : null,
+      shoe: shoe
+        ? { brand: shoe.brand, model: shoe.model, variant: shoe.variant }
+        : null,
       coaching: coaching
         ? {
             effortLabel: coaching.effortLabel,
@@ -101,7 +125,8 @@ const getRunDetail = createServerFn({ method: 'GET' })
         maxHr: lap.maxHr,
         avgCadence: lap.avgCadence,
         avgPowerW: lap.avgPowerW,
-        avgStrideLengthM: lap.avgStrideLengthM == null ? null : Number(lap.avgStrideLengthM),
+        avgStrideLengthM:
+          lap.avgStrideLengthM == null ? null : Number(lap.avgStrideLengthM),
         elevationGainM: lap.elevationGainM,
       })),
       hrZones: hrRows.map((z) => ({
@@ -121,69 +146,82 @@ function RunDetailPage() {
   const { run, shoe, laps, hrZones, coaching } = Route.useLoaderData()
 
   return (
-    <main className="ar-shell">
-      <section className="space-y-3">
-        <Link
-          to="/runs"
-          className="ar-back-link"
-        >
-          ← Back to runs
-        </Link>
-        <div>
-          <h1 className="ar-page-title">{run.date}</h1>
-          <p className="ar-helper mt-1">
-            {run.activityType}
-            {run.surface ? ` · ${run.surface}` : ''}
-            {run.workoutIntent === 'unknown' ? '' : ` · ${run.workoutIntent}`}
-            {run.notes ? ` · ${run.notes}` : ''}
-          </p>
-        </div>
-      </section>
-
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <main id="main-content" tabIndex={-1} className="ar-shell">
+      <PageIntro
+        icon="run"
+        eyebrow={`Session / ${run.activityType}`}
+        title={run.date}
+        description={[
+          run.surface,
+          run.workoutIntent === 'unknown' ? null : run.workoutIntent,
+          run.notes,
+        ]
+          .filter(Boolean)
+          .join(' · ')}
+        action={
+          <Link to="/runs" className="ar-back-link">
+            <AppIcon name="back" size={18} /> All runs
+          </Link>
+        }
+      />
+      <section className="ar-metric-strip">
         <StatCard label="Distance" value={`${run.distanceKm.toFixed(2)} km`} />
-        <StatCard label="Duration" value={formatDuration(run.durationSeconds)} />
-        <StatCard label="Avg pace" value={formatTrendPace(run.avgPaceSecPerKm)} />
-        {run.avgHr != null && <StatCard label="Avg HR" value={`${run.avgHr} bpm`} />}
-        {run.avgCadence != null && <StatCard label="Avg cadence" value={`${run.avgCadence} spm`} />}
-        {run.avgPowerW != null && <StatCard label="Avg power" value={`${run.avgPowerW} W`} />}
-        {run.avgStrideLengthM != null && <StatCard label="Avg stride" value={`${run.avgStrideLengthM.toFixed(2)} m`} />}
-        {run.aerobicTe != null && <StatCard label="Aerobic TE" value={String(run.aerobicTe)} />}
-        {run.staminaStartPct != null && run.staminaEndPct != null && (
-          <StatCard label="Stamina" value={`${run.staminaStartPct}% → ${run.staminaEndPct}%`} />
-        )}
-        {shoe && (
-          <StatCard label="Shoe" value={[shoe.brand, shoe.model, shoe.variant].filter(Boolean).join(' ')} />
+        <StatCard
+          label="Duration"
+          value={formatDuration(run.durationSeconds)}
+        />
+        <StatCard
+          label="Avg pace"
+          value={formatTrendPace(run.avgPaceSecPerKm)}
+        />
+        {run.avgHr != null && (
+          <StatCard label="Avg HR" value={`${run.avgHr} bpm`} />
         )}
       </section>
-
-      {laps.length > 0 && (
-        <section className="ar-card ar-card-pad">
-          <h2 className="text-[length:var(--text-card-title)] font-heading font-bold">Lap metrics</h2>
-          <p className="ar-helper mt-1">
-            Pace, HR, and cadence per lap plotted against cumulative distance.
-          </p>
-          <div className="mt-6 h-80 w-full">
-            <LapChart data={laps} />
-          </div>
-        </section>
-      )}
-
-      {hrZones.length > 0 && (
-        <section className="ar-card ar-card-pad">
-          <h2 className="text-[length:var(--text-card-title)] font-heading font-bold">HR zone distribution</h2>
-          <p className="ar-helper mt-1">
-            Time spent in each Garmin heart rate zone.
-          </p>
-          <div className="mt-6 h-60 w-full">
-            <HrZoneChart data={hrZones} />
-          </div>
-        </section>
-      )}
+      <DetailDisclosure
+        title="Running dynamics & equipment"
+        icon="cadence"
+        description="Cadence, power, stride, training effect, stamina and shoes"
+      >
+        <div className="ar-secondary-metrics">
+          {run.avgCadence != null && (
+            <StatCard label="Avg cadence" value={`${run.avgCadence} spm`} />
+          )}
+          {run.avgPowerW != null && (
+            <StatCard label="Avg power" value={`${run.avgPowerW} W`} />
+          )}
+          {run.avgStrideLengthM != null && (
+            <StatCard
+              label="Avg stride"
+              value={`${run.avgStrideLengthM.toFixed(2)} m`}
+            />
+          )}
+          {run.aerobicTe != null && (
+            <StatCard label="Aerobic TE" value={String(run.aerobicTe)} />
+          )}
+          {run.staminaStartPct != null && run.staminaEndPct != null && (
+            <StatCard
+              label="Stamina"
+              value={`${run.staminaStartPct}% → ${run.staminaEndPct}%`}
+            />
+          )}
+          {shoe && (
+            <StatCard
+              label="Shoe"
+              value={[shoe.brand, shoe.model, shoe.variant]
+                .filter(Boolean)
+                .join(' ')}
+            />
+          )}
+        </div>
+      </DetailDisclosure>
 
       {coaching && (
         <section className="ar-card ar-card-pad">
-          <h2 className="text-[length:var(--text-card-title)] font-heading font-bold">Coaching analysis</h2>
+          <h2 className="ar-heading-with-icon text-[length:var(--text-card-title)] font-heading font-bold">
+            <AppIcon name="coaching" size={22} />
+            Coaching analysis
+          </h2>
           <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
             {run.workoutIntent !== 'unknown' && (
               <div className="flex gap-2">
@@ -196,16 +234,22 @@ function RunDetailPage() {
               <dd className="font-medium">{coaching.effortLabel}</dd>
             </div>
             <div className="flex gap-2">
-              <dt className="w-32 shrink-0 text-muted-foreground">Intent match</dt>
+              <dt className="w-32 shrink-0 text-muted-foreground">
+                Intent match
+              </dt>
               <dd>{coaching.intentMatch}</dd>
             </div>
             <div className="flex gap-2">
-              <dt className="w-32 shrink-0 text-muted-foreground">HR reliability</dt>
+              <dt className="w-32 shrink-0 text-muted-foreground">
+                HR reliability
+              </dt>
               <dd>{coaching.hrReliability}</dd>
             </div>
             {coaching.keyPositive && (
               <div className="flex gap-2 sm:col-span-2">
-                <dt className="w-32 shrink-0 text-muted-foreground">Positive</dt>
+                <dt className="w-32 shrink-0 text-muted-foreground">
+                  Positive
+                </dt>
                 <dd>{coaching.keyPositive}</dd>
               </div>
             )}
@@ -217,7 +261,9 @@ function RunDetailPage() {
             )}
             {coaching.recommendation && (
               <div className="flex gap-2 sm:col-span-2">
-                <dt className="w-32 shrink-0 text-muted-foreground">Recommendation</dt>
+                <dt className="w-32 shrink-0 text-muted-foreground">
+                  Recommendation
+                </dt>
                 <dd>{coaching.recommendation}</dd>
               </div>
             )}
@@ -227,7 +273,40 @@ function RunDetailPage() {
 
       {laps.length > 0 && (
         <section className="ar-card ar-card-pad">
-          <h2 className="text-[length:var(--text-card-title)] font-heading font-bold">Lap breakdown</h2>
+          <h2 className="ar-heading-with-icon text-[length:var(--text-card-title)] font-heading font-bold">
+            <AppIcon name="trends" size={22} />
+            Lap metrics
+          </h2>
+          <p className="ar-helper mt-1">
+            Pace, HR, and cadence per lap plotted against cumulative distance.
+          </p>
+          <div className="mt-6 h-80 w-full">
+            <LapChart data={laps} />
+          </div>
+        </section>
+      )}
+
+      {hrZones.length > 0 && (
+        <section className="ar-card ar-card-pad">
+          <h2 className="ar-heading-with-icon text-[length:var(--text-card-title)] font-heading font-bold">
+            <AppIcon name="heart" size={22} />
+            HR zone distribution
+          </h2>
+          <p className="ar-helper mt-1">
+            Time spent in each Garmin heart rate zone.
+          </p>
+          <div className="mt-6 h-60 w-full">
+            <HrZoneChart data={hrZones} />
+          </div>
+        </section>
+      )}
+
+      {laps.length > 0 && (
+        <DetailDisclosure
+          title="Lap breakdown"
+          icon="history"
+          description="Every split: distance, time, pace, heart rate and running dynamics"
+        >
           <div className="ar-table-wrap">
             <table className="ar-table min-w-full">
               <thead>
@@ -245,16 +324,35 @@ function RunDetailPage() {
               </thead>
               <tbody>
                 {laps.map((lap) => (
-                  <tr key={lap.lapIndex} className="border-b last:border-0 align-top">
-                    <td className="py-3 pr-4 whitespace-nowrap">{lap.lapIndex + 1}</td>
-                    <td className="py-3 pr-4 whitespace-nowrap">{(lap.splitDistanceM / 1000).toFixed(2)} km</td>
-                    <td className="py-3 pr-4 whitespace-nowrap">{formatDuration(lap.splitDurationS)}</td>
-                    <td className="py-3 pr-4 whitespace-nowrap">{formatTrendPace(lap.paceSecKm)}</td>
-                    <td className="py-3 pr-4 whitespace-nowrap">{lap.avgHr ?? '—'}</td>
-                    <td className="py-3 pr-4 whitespace-nowrap">{lap.maxHr ?? '—'}</td>
-                    <td className="py-3 pr-4 whitespace-nowrap">{lap.avgCadence ?? '—'}</td>
+                  <tr
+                    key={lap.lapIndex}
+                    className="border-b last:border-0 align-top"
+                  >
                     <td className="py-3 pr-4 whitespace-nowrap">
-                      {lap.avgStrideLengthM == null ? '—' : `${lap.avgStrideLengthM.toFixed(2)} m`}
+                      {lap.lapIndex + 1}
+                    </td>
+                    <td className="py-3 pr-4 whitespace-nowrap">
+                      {(lap.splitDistanceM / 1000).toFixed(2)} km
+                    </td>
+                    <td className="py-3 pr-4 whitespace-nowrap">
+                      {formatDuration(lap.splitDurationS)}
+                    </td>
+                    <td className="py-3 pr-4 whitespace-nowrap">
+                      {formatTrendPace(lap.paceSecKm)}
+                    </td>
+                    <td className="py-3 pr-4 whitespace-nowrap">
+                      {lap.avgHr ?? '—'}
+                    </td>
+                    <td className="py-3 pr-4 whitespace-nowrap">
+                      {lap.maxHr ?? '—'}
+                    </td>
+                    <td className="py-3 pr-4 whitespace-nowrap">
+                      {lap.avgCadence ?? '—'}
+                    </td>
+                    <td className="py-3 pr-4 whitespace-nowrap">
+                      {lap.avgStrideLengthM == null
+                        ? '—'
+                        : `${lap.avgStrideLengthM.toFixed(2)} m`}
                     </td>
                     <td className="py-3 pr-4 whitespace-nowrap">
                       {lap.avgPowerW == null ? '—' : `${lap.avgPowerW} W`}
@@ -264,18 +362,9 @@ function RunDetailPage() {
               </tbody>
             </table>
           </div>
-        </section>
+        </DetailDisclosure>
       )}
     </main>
-  )
-}
-
-function StatCard({ label, value }: { readonly label: string; readonly value: string }) {
-  return (
-    <div className="ar-card p-4">
-      <p className="ar-label">{label}</p>
-      <p className="ar-stat-value-sm mt-1">{value}</p>
-    </div>
   )
 }
 
@@ -307,23 +396,34 @@ function formatPaceLabel(seconds: number) {
 }
 
 function LapChart({ data }: { readonly data: LapPoint[] }) {
-  const [chartLib, setChartLib] = React.useState<null | typeof import('recharts')>(null)
+  const [chartLib, setChartLib] = React.useState<
+    null | typeof import('recharts')
+  >(null)
 
   React.useEffect(() => {
     let cancelled = false
-    import('recharts').then((mod) => { if (!cancelled) setChartLib(mod) })
-    return () => { cancelled = true }
+    import('recharts').then((mod) => {
+      if (!cancelled) setChartLib(mod)
+    })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   if (!chartLib) {
-    return (
-      <div className="ar-empty">
-        Loading chart…
-      </div>
-    )
+    return <div className="ar-empty">Loading chart…</div>
   }
 
-  const { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } = chartLib
+  const {
+    CartesianGrid,
+    Legend,
+    Line,
+    LineChart,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis,
+  } = chartLib
 
   const hasHr = data.some((d) => d.avgHr != null)
   const hasCadence = data.some((d) => d.avgCadence != null)
@@ -336,8 +436,15 @@ function LapChart({ data }: { readonly data: LapPoint[] }) {
   return (
     <ChartContainer config={lapChartConfig} className="h-full w-full min-h-80">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 12, right: 16, left: 0, bottom: 12 }}>
-          <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-800" />
+        <LineChart
+          data={data}
+          margin={{ top: 12, right: 16, left: 0, bottom: 12 }}
+        >
+          <CartesianGrid
+            vertical={false}
+            strokeDasharray="3 3"
+            className="stroke-gray-200 dark:stroke-gray-800"
+          />
           <XAxis
             dataKey="distanceKm"
             tickFormatter={(v) => `${Number(v).toFixed(1)} km`}
@@ -426,24 +533,43 @@ function LapChart({ data }: { readonly data: LapPoint[] }) {
 
 const zoneColors = ['#94a3b8', '#3b82f6', '#22c55e', '#f59e0b', '#ef4444']
 
-function HrZoneChart({ data }: { readonly data: { zoneNumber: number; durationSeconds: number; pctOfRun: number }[] }) {
-  const [chartLib, setChartLib] = React.useState<null | typeof import('recharts')>(null)
+function HrZoneChart({
+  data,
+}: {
+  readonly data: {
+    zoneNumber: number
+    durationSeconds: number
+    pctOfRun: number
+  }[]
+}) {
+  const [chartLib, setChartLib] = React.useState<
+    null | typeof import('recharts')
+  >(null)
 
   React.useEffect(() => {
     let cancelled = false
-    import('recharts').then((mod) => { if (!cancelled) setChartLib(mod) })
-    return () => { cancelled = true }
+    import('recharts').then((mod) => {
+      if (!cancelled) setChartLib(mod)
+    })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   if (!chartLib) {
-    return (
-      <div className="ar-empty">
-        Loading chart…
-      </div>
-    )
+    return <div className="ar-empty">Loading chart…</div>
   }
 
-  const { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } = chartLib
+  const {
+    BarChart,
+    Bar,
+    Cell,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+  } = chartLib
 
   const chartData = data.map((z) => ({
     zone: `Z${z.zoneNumber}`,
@@ -455,9 +581,21 @@ function HrZoneChart({ data }: { readonly data: { zoneNumber: number; durationSe
   return (
     <ChartContainer config={{}} className="h-full w-full min-h-60">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
-          <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-800" />
-          <XAxis dataKey="zone" tickLine={false} axisLine={false} tickMargin={8} />
+        <BarChart
+          data={chartData}
+          margin={{ top: 8, right: 16, left: 0, bottom: 8 }}
+        >
+          <CartesianGrid
+            vertical={false}
+            strokeDasharray="3 3"
+            className="stroke-gray-200 dark:stroke-gray-800"
+          />
+          <XAxis
+            dataKey="zone"
+            tickLine={false}
+            axisLine={false}
+            tickMargin={8}
+          />
           <YAxis
             tickLine={false}
             axisLine={false}

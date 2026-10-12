@@ -12,7 +12,7 @@ import { GarminGateway } from './garmin'
 import { TaskStore } from './task-state'
 import { createPostgresRepository, loadInventory, loadHistory, loadRunSummary, loadAnalysisHistory, correctRunShoe, persistRun, type PostgresRepository, type PersistRunInput } from './repository'
 
-export interface CoachDependencies {
+export type CoachDependencies = {
   runner?: DecisionRunner
   gateway?: GarminGateway
   openRepository?: () => PostgresRepository

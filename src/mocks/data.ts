@@ -1,3 +1,4 @@
+import { summarizeWeeklyMileage, type WeeklyMileage } from '~/lib/weekly-mileage'
 import { formatTrendShortDate, type TrendChartPoint } from '~/components/trend-line-chart'
 
 export function isMockMode() {
@@ -33,6 +34,8 @@ type MockRun = {
 }
 
 export type DashboardData = {
+  weeklyMileage: WeeklyMileage
+  last7DaysMileage: WeeklyMileage
   runtimePort: string
   user: { displayName: string } | null
   summary: {
@@ -220,6 +223,8 @@ function toTrendPoint(run: MockRun): TrendChartPoint {
 function buildMockDashboardData(runtimePort?: string): DashboardData {
   return {
     runtimePort: runtimePort || process.env.PORT || 'unknown',
+    weeklyMileage: summarizeWeeklyMileage(mockRuns),
+    last7DaysMileage: summarizeWeeklyMileage(mockRuns, new Date(), 'last7Days'),
   user: { displayName: 'Mock Runner' },
   summary: {
     runCount: mockRuns.length,

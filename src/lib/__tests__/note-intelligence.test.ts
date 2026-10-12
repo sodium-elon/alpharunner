@@ -156,7 +156,7 @@ describe('analyzeRunNote', () => {
 
     expect(result.runType).toBe('tempo')
     expect(fetchImpl).toHaveBeenCalledTimes(2)
-    const [url1, init1] = fetchImpl.mock.calls[0]
+    const [url1] = fetchImpl.mock.calls[0]
     const [url2, init2] = fetchImpl.mock.calls[1]
     expect(url1).toBe(NOTE_INTELLIGENCE_ENDPOINT)
     expect(url2).toBe(OPENROUTER_DECISIONS_ENDPOINT)

@@ -10,7 +10,7 @@
 export const POWER_EPOCH_CUTOFF = '2026-08-28' // first validated Stryd run
 export const DISTANCE_SATURATE_KM = 12 // distance score flattens past this
 
-export interface RankInput {
+export type RankInput = {
   date: string // yyyy-mm-dd
   distanceKm: number
   paceSecPerKm: number
@@ -23,12 +23,12 @@ export interface RankInput {
   hasNote?: boolean
 }
 
-export interface RankedRun extends RankInput {
+export type RankedRun = {
   powerSource: string
   economy: number | null // raw watts-per-bpm, transparency only
   components: { power: number; mechanics: number; distance: number } // each 0..1
   qualityScore: number // 0..1, weights renormalized when a component is missing
-}
+} & RankInput
 
 const WEIGHTS = { power: 0.45, mechanics: 0.3, distance: 0.25 }
 

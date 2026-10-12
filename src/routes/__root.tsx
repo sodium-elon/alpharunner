@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+import { AppIcon } from '~/components/app-icon'
 import {
   HeadContent,
   Link,
@@ -15,7 +16,11 @@ import { seo } from '~/utils/seo'
 
 const appCssHref = import.meta.env.DEV ? '/src/app.css?direct' : appCss
 const RouterDevtools = import.meta.env.DEV
-  ? React.lazy(() => import('@tanstack/react-router-devtools').then(({ TanStackRouterDevtools }) => ({ default: TanStackRouterDevtools })))
+  ? React.lazy(() =>
+      import('@tanstack/react-router-devtools').then(
+        ({ TanStackRouterDevtools }) => ({ default: TanStackRouterDevtools }),
+      ),
+    )
   : null
 
 const getRuntimeInfo = createServerFn({ method: 'GET' }).handler(async () => ({
@@ -37,7 +42,7 @@ export const Route = createRootRoute({
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
         ...seo({
           title: getAppTitle(runtimePort),
-          description: 'Dashboard and control center for John\'s running data.',
+          description: "Dashboard and control center for John's running data.",
         }),
       ],
       links: [{ rel: 'stylesheet', href: appCssHref }],
@@ -57,18 +62,25 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   const { runtimePort } = Route.useLoaderData()
 
   return (
-    <html>
+    <html lang="en">
       <head>
         <HeadContent />
       </head>
       <body>
+        <a className="ar-skip-link" href="#main-content">
+          Skip to content
+        </a>
         <header className="ar-topbar">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
             <div className="flex items-baseline gap-3">
-              <div className="ar-wordmark">AlphaRunner</div>
-              <span className="ar-label">Port {runtimePort}</span>
+              <Link to="/" className="ar-wordmark">
+                <span className="ar-brand-mark" aria-hidden="true">
+                  <AppIcon name="open" size={18} />
+                </span>{' '}
+                AlphaRunner
+              </Link>
             </div>
-            <nav className="flex items-center gap-2">
+            <nav aria-label="Primary" className="flex items-center gap-2">
               <Link
                 to="/"
                 className="ar-nav-link"
@@ -77,7 +89,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                 }}
                 activeOptions={{ exact: true }}
               >
-                Dashboard
+                <AppIcon name="overview" size={18} /> Overview
               </Link>
               <Link
                 to="/runs"
@@ -86,12 +98,17 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                   className: 'ar-nav-link ar-nav-link-active',
                 }}
               >
-                Runs
+                <AppIcon name="history" size={18} /> Runs
               </Link>
             </nav>
           </div>
         </header>
         {children}
+        <footer className="ar-footer">
+          <span className="ar-wordmark">AlphaRunner</span>
+          <span>Your pace. Your progress.</span>
+          <span className="ar-label">Port {runtimePort}</span>
+        </footer>
         {RouterDevtools ? (
           <React.Suspense fallback={null}>
             <RouterDevtools position="bottom-right" />

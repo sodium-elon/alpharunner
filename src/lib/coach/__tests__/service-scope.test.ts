@@ -8,6 +8,7 @@ import { TaskStore } from '../task-state'
 import type { CoachEnvironment } from '../environment'
 import type { GarminGateway } from '../garmin'
 import type { DecisionRunner } from '../jev-client'
+import type { PostgresRepository } from '../repository'
 const env = (root:string) => ({stateRoot:root,garminExecutable:'/unused',garminTokenStore:'/unused'}) as CoachEnvironment
 
 it.each(['2026-10-02','2026-10-02T00:00:00'])('passes only the target-date Garmin adaptive workout (%s) to the runner as a prescribed plan', async(calendarDate)=>{
@@ -49,7 +50,7 @@ it.each([{calendar:[]},{calendar:[
       }))}
     }
     const openRepository=vi.fn(() => ({sql:{unsafe:vi.fn(async()=>[])},close:vi.fn(async()=>{})}))
-    await dispatchCoachCommand(['analyze-run','--date','2026-10-02','--activity-id','123'],createCoachServices(env(root),{runner,gateway,openRepository:openRepository as any}))
+    await dispatchCoachCommand(['analyze-run','--date','2026-10-02','--activity-id','123'],createCoachServices(env(root),{runner,gateway,openRepository:openRepository as unknown as () => PostgresRepository}))
     expect(openRepository).toHaveBeenCalledTimes(1)
   }finally{await rm(root,{recursive:true,force:true})}
 })

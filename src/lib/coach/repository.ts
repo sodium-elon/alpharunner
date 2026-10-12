@@ -3,26 +3,26 @@ import { effortLabelSchema, intentMatchSchema, hrReliabilitySchema, mechanicsQua
 import { transformRun, transformLaps, transformHrZones, isRunningActivity, type RunRow, type LapRow, type HrZoneRow } from '../../../scripts/garmin/transform'
 import type { GarminStagedActivity } from '../../../scripts/garmin/types'
 
-export interface PersistRunInput {
+export type PersistRunInput = {
   activity: GarminStagedActivity; expectedDate: string; expectedActivityId: string; shoeId: string
   power?: { source: 'stryd' | 'garmin' | 'unavailable'; averageW: number | null; maxW: number | null; laps: Array<{ lapIndex: number; averageW: number | null; maxW: number | null }>; provenance: string }
   coaching: { effortLabel: string; intentMatch: string; hrReliability: string; keyPositive: string; keyConcern: string; recommendation: string }
   shoeObservation?: { notes: string; mechanicsQuality?: string }; userNote?: string
 }
 export type PersistedRun = RunRow & { shoeId: string; userId: string | null; notes: string | null }
-export interface RunBundle {
+export type RunBundle = {
   run: PersistedRun; laps: LapRow[]; hrZones: HrZoneRow[]
   coaching: PersistRunInput['coaching'] & { runId: string }
   shoeObservation: { runId: string; shoeId: string; notes: string | null; mechanicsQuality: string }
 }
-export interface ChildCounts { laps: number; hrZones: number; coachingNotes: number; shoeObservations: number }
-export interface ExistingRun { id: string; date: string; shoeId: string | null; garminActivityId: string | null }
-export interface Verification {
+export type ChildCounts = { laps: number; hrZones: number; coachingNotes: number; shoeObservations: number }
+export type ExistingRun = { id: string; date: string; shoeId: string | null; garminActivityId: string | null }
+export type Verification = {
   run: ExistingRun & { avgPowerW: number | null; maxPowerW: number | null }
   laps: Array<{ lapIndex: number; avgPowerW: number | null; maxPowerW: number | null }>
   counts: ChildCounts; powerSource: PowerSource
 }
-export interface TransactionRepository {
+export type TransactionRepository = {
   getShoe(id: string): Promise<{ id: string; userId: string | null } | null>
   getExisting(activityId: string): Promise<ExistingRun | null>
   getUserId(shoeId: string): Promise<string>
@@ -30,8 +30,8 @@ export interface TransactionRepository {
   verify(runId: string): Promise<Verification>
   reconcileMileage(shoeId: string): Promise<number>
 }
-export interface RunRepository { transaction<T>(work: (tx: TransactionRepository) => Promise<T>): Promise<T> }
-export interface PersistRunResult {
+export type RunRepository = { transaction<T>(work: (tx: TransactionRepository) => Promise<T>): Promise<T> }
+export type PersistRunResult = {
   status: 'imported' | 'already_imported'; runId: string; activityId: string; date: string; shoeId: string
   counts: ChildCounts; shoeKm: number; powerSource: PowerSource; verified: true
 }
@@ -141,10 +141,10 @@ export async function persistRun(input: PersistRunInput, repository: RunReposito
   })
 }
 
-export interface SqlExecutor {
+export type SqlExecutor = {
   unsafe(query: string, parameters?: unknown[]): PromiseLike<Record<string, unknown>[]>
 }
-export interface InventoryShoe {
+export type InventoryShoe = {
   id: string; brand: string; model: string; variant: string | null
   status: string; role: string; category: string | null; notes: string | null
   stackHeightMm?: number | null; dropMm?: number | null; weightG?: number | null
@@ -154,7 +154,7 @@ function requireSql(sql?: SqlExecutor): SqlExecutor {
   return sql
 }
 export type PowerSource = 'stryd' | 'garmin' | 'unknown'
-export interface HistoryRun {
+export type HistoryRun = {
   shoeId: string | null; id: string; date: string; surface: string | null
   paceSecPerKm: number; powerW: number | null; powerSource: PowerSource
   effort: string | null; comfort: number | null; evidence: string
@@ -198,7 +198,7 @@ export async function loadHistory(sql?: SqlExecutor): Promise<HistoryRun[]> {
     ORDER BY r.date DESC, r.id`)
   return rows.map(r => ({ ...r, powerSource: sourceFromEvidence(String(r.evidence ?? '')) })) as unknown as HistoryRun[]
 }
-export interface AnalysisHistoryRun {
+export type AnalysisHistoryRun = {
   id: string; activityId: string | null; date: string; activityType: string; shoeId: string | null
   distanceKm: number; durationSeconds: number; paceSecPerKm: number; workoutIntent: string | null
   surface: string | null; powerW: number | null; powerSource: PowerSource; evidence: string
@@ -218,8 +218,8 @@ export async function loadAnalysisHistory(sql: SqlExecutor, date: string): Promi
     paceSecPerKm: Number(r.paceSecPerKm), powerSource: sourceFromEvidence(String(r.evidence ?? '')) })) as AnalysisHistoryRun[]
 }
 
-export interface ShoeCorrectionScope { runId: string; date: string; activityId: string; oldShoeId: string | null; shoeId: string }
-export interface SqlTransactionRepository { sqlTransaction<T>(work: (sql: SqlExecutor) => Promise<T>): Promise<T> }
+export type ShoeCorrectionScope = { runId: string; date: string; activityId: string; oldShoeId: string | null; shoeId: string }
+export type SqlTransactionRepository = { sqlTransaction<T>(work: (sql: SqlExecutor) => Promise<T>): Promise<T> }
 const reviewMarker = '[SHOE CORRECTION REVIEW REQUIRED]'
 /** No import/analysis: retain original observations on their historical shoe. */
 export async function correctRunShoe(scope: ShoeCorrectionScope, repository: SqlTransactionRepository) {
@@ -239,9 +239,9 @@ export async function correctRunShoe(scope: ShoeCorrectionScope, repository: Sql
     const updated = await sql.unsafe('UPDATE alpharunner.runs SET shoe_id = $2 WHERE id = $1 RETURNING id', [scope.runId, scope.shoeId])
     if (updated.length !== 1) throw new Error('Correction update failed')
     const provenance = `[HISTORICAL SHOE OBSERVATION: run shoe corrected from ${scope.oldShoeId ?? 'unassigned'} to ${scope.shoeId}; not evidence for the corrected shoe]`
-    await sql.unsafe(`UPDATE alpharunner.shoe_observations SET notes = concat_ws(E'\\n', notes, $3::text) WHERE run_id = $1 AND shoe_id = $2`, [scope.runId, scope.oldShoeId, provenance])
+    await sql.unsafe('UPDATE alpharunner.shoe_observations SET notes = concat_ws(E\'\\n\', notes, $3::text) WHERE run_id = $1 AND shoe_id = $2', [scope.runId, scope.oldShoeId, provenance])
     const review = `${reviewMarker} Shoe changed from ${scope.oldShoeId ?? 'unassigned'} to ${scope.shoeId}; original analysis retained, shoe-dependent conclusions require review.`
-    await sql.unsafe(`UPDATE alpharunner.coaching_notes SET recommendation = concat_ws(E'\\n', recommendation, $2::text), updated_at = now() WHERE run_id = $1`, [scope.runId, review])
+    await sql.unsafe('UPDATE alpharunner.coaching_notes SET recommendation = concat_ws(E\'\\n\', recommendation, $2::text), updated_at = now() WHERE run_id = $1', [scope.runId, review])
     await sql.unsafe(`INSERT INTO alpharunner.coaching_notes (run_id, effort_label, recommendation)
       SELECT $1, 'unknown', $2 WHERE NOT EXISTS (SELECT 1 FROM alpharunner.coaching_notes WHERE run_id = $1)
       ON CONFLICT (run_id) DO NOTHING`, [scope.runId, review])
@@ -255,11 +255,11 @@ export async function correctRunShoe(scope: ShoeCorrectionScope, repository: Sql
   })
 }
 
-export interface PostgresRepository extends RunRepository {
+export type PostgresRepository = {
   sqlTransaction?: SqlTransactionRepository['sqlTransaction']
   sql: SqlExecutor
   close(): Promise<void>
-}
+} & RunRepository
 function executor(client: Pick<postgres.Sql, 'unsafe'>): SqlExecutor {
   return { unsafe: (query, parameters = []) => client.unsafe(query, parameters as postgres.ParameterOrJSON<never>[]) }
 }
@@ -306,7 +306,7 @@ function postgresTransaction(sql: SqlExecutor): TransactionRepository {
         (SELECT count(*) FROM alpharunner.shoe_observations WHERE run_id = $1 AND shoe_id = $2) AS "matchingObservations"`, [runId, run.shoeId])
       if (!counts || Number(counts.matchingObservations) !== 1) throw new Error('Shoe observation verification failed')
       const laps = await sql.unsafe('SELECT lap_index AS "lapIndex", avg_power_w AS "avgPowerW", max_power_w AS "maxPowerW" FROM alpharunner.run_laps WHERE run_id = $1 ORDER BY lap_index', [runId])
-      const coaching = await sql.unsafe(`SELECT concat_ws(E'\\n', key_positive, key_concern, recommendation) AS evidence FROM alpharunner.coaching_notes WHERE run_id = $1`, [runId])
+      const coaching = await sql.unsafe('SELECT concat_ws(E\'\\n\', key_positive, key_concern, recommendation) AS evidence FROM alpharunner.coaching_notes WHERE run_id = $1', [runId])
       return { run, laps: laps as unknown as Verification['laps'], counts: { laps: Number(counts.laps), hrZones: Number(counts.hrZones), coachingNotes: Number(counts.coachingNotes), shoeObservations: Number(counts.shoeObservations) }, powerSource: sourceFromEvidence(coaching.map(c => String(c.evidence ?? '')).join('\n')) }
     },
     async reconcileMileage(shoeId) {

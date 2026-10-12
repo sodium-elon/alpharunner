@@ -40,11 +40,11 @@ export function RunHistoryTable({
             <th className="font-medium">Date</th>
             <th className="font-medium">Distance</th>
             <th className="font-medium">Pace</th>
-            {showShoe ? <th className="font-medium hidden @[26rem]:table-cell">Shoe</th> : null}
-            <th className="font-medium hidden @[36rem]:table-cell">Cadence</th>
-            <th className="font-medium hidden @[44rem]:table-cell">Stride</th>
-            <th className="font-medium hidden @[44rem]:table-cell">HR</th>
-            <th className="font-medium hidden @[36rem]:table-cell">Intent</th>
+            {showShoe ? <th className="font-medium">Shoe</th> : null}
+            <th className="font-medium">Cadence</th>
+            <th className="font-medium">Stride</th>
+            <th className="font-medium">HR</th>
+            <th className="font-medium">Intent</th>
             <th className="w-4 pr-0">
               <span className="sr-only">Open run</span>
             </th>
@@ -57,7 +57,7 @@ export function RunHistoryTable({
               <td className="whitespace-nowrap text-xs @[26rem]:text-sm">{run.distanceKm.toFixed(2)} km</td>
               <td className="whitespace-nowrap text-xs @[26rem]:text-sm">{formatTrendPace(run.pace)}</td>
               {showShoe ? (
-                <td className="hidden @[26rem]:table-cell">
+                <td className="">
                   {run.shoe ? (
                     <ShoeNameInline brand={run.shoe.brand} model={run.shoe.model} variant={run.shoe.variant} />
                   ) : (
@@ -65,12 +65,12 @@ export function RunHistoryTable({
                   )}
                 </td>
               ) : null}
-              <td className="whitespace-nowrap hidden @[36rem]:table-cell">{run.cadence ?? '—'}</td>
-              <td className="whitespace-nowrap hidden @[44rem]:table-cell">
+              <td className="whitespace-nowrap">{run.cadence ?? '—'}</td>
+              <td className="whitespace-nowrap">
                 {run.strideLengthM == null ? '—' : `${run.strideLengthM.toFixed(2)} m`}
               </td>
-              <td className="whitespace-nowrap hidden @[44rem]:table-cell">{run.avgHr ?? '—'}</td>
-              <td className="hidden @[36rem]:table-cell">{run.workoutIntent}</td>
+              <td className="whitespace-nowrap">{run.avgHr ?? '—'}</td>
+              <td className="">{run.workoutIntent}</td>
               <RunRowChevronCell />
             </RunTableRow>
           ))}

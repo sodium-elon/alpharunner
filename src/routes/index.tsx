@@ -1,10 +1,28 @@
+import { mileageWindow, summarizeWeeklyMileage, type MileagePeriod } from '~/lib/weekly-mileage'
+import { formatDateRangeLabel } from '~/lib/run-windows'
+import { WeeklyMileageCard } from '~/components/weekly-mileage'
+import { AppIcon } from '~/components/app-icon'
+import { useState } from 'react'
+import { Button } from '~/components/ui/button'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { desc, sql } from 'drizzle-orm'
+import { and, desc, gte, lte, sql } from 'drizzle-orm'
 import { coachingNotes, getDb, hrZoneDistributions, runs, shoes } from '~/db'
 import { isMockMode, type DashboardData } from '~/mocks/data'
 import { getMockBaseUrl } from '~/mocks/base-url'
-import { RunDateCell, RunRowChevronCell, RunTableRow } from '~/components/run-table-row'
+import {
+  PageIntro,
+  Metric,
+  SectionHeading,
+  SessionSpotlight,
+  EquipmentCard,
+  DetailDisclosure,
+} from '~/components/training-ui'
+import {
+  RunDateCell,
+  RunRowChevronCell,
+  RunTableRow,
+} from '~/components/run-table-row'
 import { ShoeNameInline } from '~/components/shoe-name'
 
 const getDashboardData = createServerFn({ method: 'GET' }).handler(async () => {
@@ -14,6 +32,12 @@ const getDashboardData = createServerFn({ method: 'GET' }).handler(async () => {
   }
 
   const db = await getDb()
+  const now = new Date()
+  const week = mileageWindow(now, 'last7Days')
+  const weeklyRuns = await db
+    .select({ date: runs.date, distanceKm: runs.distanceKm })
+    .from(runs)
+    .where(and(gte(runs.date, week.startDate), lte(runs.date, week.today)))
 
   const user = await db.query.users.findFirst({
     with: {
@@ -63,7 +87,14 @@ const getDashboardData = createServerFn({ method: 'GET' }).handler(async () => {
     })
     .from(shoes)
     .leftJoin(runs, sql`${runs.shoeId} = ${shoes.id}`)
-    .groupBy(shoes.id, shoes.brand, shoes.model, shoes.variant, shoes.role, shoes.status)
+    .groupBy(
+      shoes.id,
+      shoes.brand,
+      shoes.model,
+      shoes.variant,
+      shoes.role,
+      shoes.status,
+    )
     .orderBy(desc(sql`coalesce(sum(${runs.distanceKm}), 0)`))
 
   const latestRunIds = user?.runs.map((run) => run.id) ?? []
@@ -77,6 +108,18 @@ const getDashboardData = createServerFn({ method: 'GET' }).handler(async () => {
 
   return {
     runtimePort: process.env.PORT ?? 'unknown',
+    last7DaysMileage: summarizeWeeklyMileage(
+      weeklyRuns.map((run) => ({ date: run.date, distanceKm: Number(run.distanceKm) })),
+      now,
+      'last7Days',
+    ),
+    weeklyMileage: summarizeWeeklyMileage(
+      weeklyRuns.map((run) => ({
+        date: run.date,
+        distanceKm: Number(run.distanceKm),
+      })),
+      now,
+    ),
     user: user
       ? {
           displayName: user.displayName,
@@ -123,7 +166,10 @@ const getDashboardData = createServerFn({ method: 'GET' }).handler(async () => {
       runCount: shoe.runCount,
       avgCadence: shoe.avgCadence == null ? null : Number(shoe.avgCadence),
       avgHr: shoe.avgHr == null ? null : Number(shoe.avgHr),
-      avgPaceSecPerKm: shoe.avgPaceSecPerKm == null ? null : Math.round(Number(shoe.avgPaceSecPerKm)),
+      avgPaceSecPerKm:
+        shoe.avgPaceSecPerKm == null
+          ? null
+          : Math.round(Number(shoe.avgPaceSecPerKm)),
       status: shoe.status,
     })),
   }
@@ -151,52 +197,118 @@ function formatDuration(totalSeconds: number) {
 
 function Home() {
   const data = Route.useLoaderData()
+  const [showAllShoes, setShowAllShoes] = useState(false)
+  const [mileagePeriod, setMileagePeriod] = useState<MileagePeriod>('last7Days')
+  const mileage = mileagePeriod === 'last7Days' ? data.last7DaysMileage : data.weeklyMileage
 
   return (
-    <main className="ar-shell">
-      <section className="space-y-2">
-        <p className="ar-page-kicker">Running data control center</p>
-        <h1 className="ar-page-title">
-          AlphaRunner <span className="align-middle font-mono text-[length:var(--text-xs)] font-medium tracking-normal text-muted-foreground">({data.runtimePort})</span>
-        </h1>
-        <p className="ar-page-copy max-w-3xl">
-          Live dashboard for {data.user?.displayName ?? 'your running data'}, backed by the AlphaRunner database.
-        </p>
+    <main id="main-content" tabIndex={-1} className="ar-shell">
+      <PageIntro
+        icon="overview"
+        eyebrow="Your training headquarters"
+        title={
+          <>
+            Every run.
+            <br />
+            All you.
+          </>
+        }
+        description={`Welcome back${data.user?.displayName ? `, ${data.user.displayName}` : ''}. Your progress, from the ground up.`}
+        action={
+          <Link to="/runs" className="ar-cta">
+            Explore your runs <AppIcon name="open" size={18} />
+          </Link>
+        }
+      />
+      <WeeklyMileageCard
+        mileage={mileage}
+        period={mileagePeriod}
+        onPeriodChange={setMileagePeriod}
+        dateLabel={formatDateRangeLabel(
+          mileage.startDate,
+          mileage.endDate,
+        )}
+        action={
+          <Link to="/runs" className="ar-week-link">
+            Explore your training log <AppIcon name="open" size={18} />
+          </Link>
+        }
+      />
+      <section className="ar-metric-strip">
+        <Metric
+          label="Total distance"
+          value={`${data.summary.totalDistanceKm.toFixed(2)} km`}
+          helper="Every kilometre counts"
+        />
+        <Metric
+          label="Runs logged"
+          value={String(data.summary.runCount)}
+          helper="Your training to date"
+        />
+        <Metric
+          label="Shoe rotation"
+          value={String(data.summary.shoeCount)}
+          helper="Tracked pairs"
+        />
       </section>
-
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard to="/runs" label="Runs" value={String(data.summary.runCount)} helper="Logged activities" />
-        <StatCard label="Distance" value={`${data.summary.totalDistanceKm.toFixed(2)} km`} helper="Total across all runs" />
-        <StatCard label="Shoes" value={String(data.summary.shoeCount)} helper="Tracked in rotation" />
-        <StatCard label="Coaching Notes" value={String(data.summary.coachingCount)} helper="Structured analysis rows" />
-        <StatCard label="HR Zone Rows" value={String(data.summary.zoneCount)} helper="Per-run zone breakdown rows" />
-      </section>
-
-      <section className="grid gap-6 xl:grid-cols-[2fr_1fr]">
-        <div className="ar-card ar-card-pad">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-[length:var(--text-card-title)] font-heading font-bold">Recent runs</h2>
-              <p className="ar-helper mt-1">
-                Latest runs with shoe and coaching context. Select a row to open the run.
-              </p>
-            </div>
-            <Link to="/runs" className="ar-back-link shrink-0">
-              All runs →
+      {data.recentRuns[0] ? (
+        <SessionSpotlight
+          date={data.recentRuns[0].date}
+          activity={data.recentRuns[0].workoutIntent}
+          distance={data.recentRuns[0].distanceKm.toFixed(2)}
+          pace={formatPace(data.recentRuns[0].avgPaceSecPerKm)}
+          duration={formatDuration(data.recentRuns[0].durationSeconds)}
+          action={
+            <Link
+              to="/run/$runId"
+              params={{ runId: data.recentRuns[0].id }}
+              className="ar-cta ar-cta-light"
+            >
+              Explore session <AppIcon name="open" size={18} />
             </Link>
-          </div>
-
+          }
+        >
+          {data.recentRuns[0].coachingNote?.effortLabel && (
+            <p className="ar-spotlight-note">
+              <span className="ar-label block mb-2">Coaching verdict</span>
+              <strong className="text-2xl capitalize">
+                {data.recentRuns[0].coachingNote.effortLabel}
+              </strong>
+              <span className="block mt-2">
+                Open your session for the full coaching analysis.
+              </span>
+            </p>
+          )}
+        </SessionSpotlight>
+      ) : (
+        <div className="ar-empty p-10">
+          Your first run starts the story. No runs logged yet.
+        </div>
+      )}
+      <section>
+        <div className="ar-card ar-card-pad">
+          <SectionHeading
+            number="01"
+            icon="history"
+            title="Fresh off the track"
+            description="Your latest runs. Select a session to get the full picture."
+            action={
+              <Link to="/runs" className="ar-back-link">
+                All runs <AppIcon name="open" size={18} />
+              </Link>
+            }
+          />
           <div className="ar-table-wrap">
             <table className="ar-table">
               <thead>
                 <tr className="ar-table-head">
                   <th className="py-2 pr-4 font-medium">Date</th>
-                  <th className="py-2 pr-4 font-medium hidden @[26rem]:table-cell">Type</th>
                   <th className="py-2 pr-4 font-medium">Distance</th>
                   <th className="py-2 pr-4 font-medium">Pace</th>
-                  <th className="py-2 pr-4 font-medium hidden @[26rem]:table-cell">Shoe</th>
-                  <th className="py-2 pr-4 font-medium hidden @[40rem]:table-cell">Avg HR</th>
-                  <th className="py-2 pr-4 font-medium hidden @[52rem]:table-cell">Coaching</th>
+                  <th className="py-2 pr-4 font-medium">Type</th>
+                  <th className="py-2 pr-4 font-medium">Shoe</th>
+                  <th className="py-2 pr-4 font-medium">Avg HR</th>
+                  <th className="py-2 pr-4 font-medium">Coaching</th>
                   <th className="w-4 pr-0">
                     <span className="sr-only">Open run</span>
                   </th>
@@ -204,32 +316,56 @@ function Home() {
               </thead>
               <tbody>
                 {data.recentRuns.map((run) => (
-                  <RunTableRow key={run.id} runId={run.id} className="border-b last:border-0 align-top">
+                  <RunTableRow
+                    key={run.id}
+                    runId={run.id}
+                    className="border-b last:border-0 align-top"
+                  >
                     <RunDateCell runId={run.id} date={run.date} />
-                    <td className="py-3 pr-4 hidden @[26rem]:table-cell">
+                    <td className="py-3 pr-4 whitespace-nowrap text-xs @[26rem]:text-sm">
+                      {run.distanceKm.toFixed(2)} km
+                    </td>
+                    <td className="py-3 pr-4 whitespace-nowrap text-xs @[26rem]:text-sm">
+                      <div>{formatPace(run.avgPaceSecPerKm)}</div>
+                      <div className="ar-helper">
+                        {formatDuration(run.durationSeconds)}
+                      </div>
+                    </td>
+                    <td className="py-3 pr-4">
                       <div className="font-medium">{run.activityType}</div>
                       <div className="ar-helper">{run.workoutIntent}</div>
                     </td>
-                    <td className="py-3 pr-4 whitespace-nowrap text-xs @[26rem]:text-sm">{run.distanceKm.toFixed(2)} km</td>
-                    <td className="py-3 pr-4 whitespace-nowrap text-xs @[26rem]:text-sm">
-                      <div>{formatPace(run.avgPaceSecPerKm)}</div>
-                      <div className="ar-helper hidden @[26rem]:block">{formatDuration(run.durationSeconds)}</div>
-                    </td>
-                    <td className="py-3 pr-4 hidden @[26rem]:table-cell">
+                    <td className="py-3 pr-4">
                       {run.shoe ? (
-                        <ShoeNameInline brand={run.shoe.brand} model={run.shoe.model} variant={run.shoe.variant} />
-                      ) : 'Unassigned'}
+                        <ShoeNameInline
+                          brand={run.shoe.brand}
+                          model={run.shoe.model}
+                          variant={run.shoe.variant}
+                        />
+                      ) : (
+                        'Unassigned'
+                      )}
                     </td>
-                    <td className="py-3 pr-4 whitespace-nowrap hidden @[40rem]:table-cell">{run.avgHr ?? '—'}</td>
-                    <td className="py-3 pr-4 max-w-sm hidden @[52rem]:table-cell">
+                    <td className="py-3 pr-4 whitespace-nowrap">
+                      {run.avgHr ?? '—'}
+                    </td>
+                    <td className="py-3 pr-4 max-w-sm">
                       {run.coachingNote ? (
                         <div>
-                          <div className="font-medium">{run.coachingNote.effortLabel}</div>
-                          <div className="ar-helper">
-                            {run.coachingNote.recommendation ?? 'No recommendation saved'}
+                          <div className="font-medium">
+                            {run.coachingNote.effortLabel}
                           </div>
+                          <details className="ar-note-details">
+                            <summary>Read recommendation</summary>
+                            <p className="ar-helper mt-2">
+                              {run.coachingNote.recommendation ??
+                                'No recommendation saved'}
+                            </p>
+                          </details>
                         </div>
-                      ) : '—'}
+                      ) : (
+                        '—'
+                      )}
                     </td>
                     <RunRowChevronCell />
                   </RunTableRow>
@@ -238,82 +374,100 @@ function Home() {
             </table>
           </div>
         </div>
-
-        <div className="ar-card ar-card-pad">
-          <h2 className="text-[length:var(--text-card-title)] font-heading font-bold">Shoe performance averages</h2>
-          <p className="ar-helper mt-1">
-            Mileage and average run metrics across all runs logged in each shoe.
-          </p>
-          <div className="ar-table-wrap">
-            <table className="ar-table">
-              <thead>
-                <tr className="ar-table-head">
-                  <th className="py-2 pr-4 font-medium">Shoe</th>
-                  <th className="py-2 pr-4 font-medium">Dist</th>
-                  <th className="py-2 pr-4 font-medium hidden @[18rem]:table-cell">Runs</th>
-                  <th className="py-2 pr-4 font-medium hidden @[18rem]:table-cell">Pace</th>
-                  <th className="py-2 pr-4 font-medium hidden @[28rem]:table-cell">Cad</th>
-                  <th className="py-2 pr-4 font-medium hidden @[28rem]:table-cell">HR</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.shoeAverages.map((shoe) => (
-                  <tr key={shoe.id} className="border-b last:border-0 align-top">
-                    <td className="py-3 pr-4">
-                      <Link
-                        to="/shoes/$shoeId"
-                        params={{ shoeId: shoe.id }}
-                        className="ar-link font-medium"
-                      >
-                        <ShoeNameInline brand={shoe.brand} model={shoe.model} variant={shoe.variant} textClassName="font-medium" />
-                      </Link>
-                      <div className="ar-helper">{shoe.role} • {shoe.status}</div>
-                    </td>
-                    <td className="py-3 pr-4 whitespace-nowrap">{shoe.totalKm.toFixed(1)} km</td>
-                    <td className="py-3 pr-4 whitespace-nowrap hidden @[18rem]:table-cell">{shoe.runCount}</td>
-                    <td className="py-3 pr-4 whitespace-nowrap hidden @[18rem]:table-cell">{shoe.avgPaceSecPerKm == null ? '—' : formatPace(shoe.avgPaceSecPerKm)}</td>
-                    <td className="py-3 pr-4 whitespace-nowrap hidden @[28rem]:table-cell">{shoe.avgCadence == null ? '—' : Math.round(shoe.avgCadence)}</td>
-                    <td className="py-3 pr-4 whitespace-nowrap hidden @[28rem]:table-cell">{shoe.avgHr == null ? '—' : Math.round(shoe.avgHr)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
       </section>
+      <section id="rotation">
+        <SectionHeading
+          number="02"
+          icon="shoe"
+          title="In your rotation"
+          description="Your highest-mileage pairs. Every kilometre accounted for."
+        />
+        <div className="ar-equipment-grid">
+          {(showAllShoes
+            ? data.shoeAverages
+            : data.shoeAverages.slice(0, 3)
+          ).map((shoe) => (
+            <EquipmentCard
+              key={shoe.id}
+              name={
+                <ShoeNameInline
+                  brand={shoe.brand}
+                  model={shoe.model}
+                  variant={shoe.variant}
+                />
+              }
+              role={shoe.role}
+              status={shoe.status}
+              distance={shoe.totalKm.toFixed(1)}
+              stats={[
+                { label: 'Runs', value: String(shoe.runCount) },
+                {
+                  label: 'Avg pace',
+                  value:
+                    shoe.avgPaceSecPerKm == null
+                      ? '—'
+                      : formatPace(shoe.avgPaceSecPerKm),
+                },
+                {
+                  label: 'Cadence',
+                  value:
+                    shoe.avgCadence == null
+                      ? '—'
+                      : `${Math.round(shoe.avgCadence)} spm`,
+                },
+                {
+                  label: 'Avg HR',
+                  value:
+                    shoe.avgHr == null ? '—' : `${Math.round(shoe.avgHr)} bpm`,
+                },
+              ]}
+              action={
+                <Link to="/shoes/$shoeId" params={{ shoeId: shoe.id }}>
+                  Explore shoe performance
+                  <span className="sr-only">
+                    {' '}
+                    for {shoe.brand} {shoe.model} {shoe.variant}
+                  </span>
+                </Link>
+              }
+            />
+          ))}
+        </div>
+        {data.shoeAverages.length > 3 && (
+          <Button
+            variant="outline"
+            className="mt-5 min-h-11 w-full"
+            aria-expanded={showAllShoes}
+            onClick={() => setShowAllShoes(!showAllShoes)}
+          >
+            {showAllShoes
+              ? 'Show fewer shoes'
+              : `View all ${data.shoeAverages.length} shoes`}
+            <AppIcon name={showAllShoes ? 'chevronUp' : 'chevronDown'} />
+          </Button>
+        )}
+        {!data.shoeAverages.length && (
+          <div className="ar-empty p-10">No shoes tracked yet.</div>
+        )}
+      </section>
+      <DetailDisclosure
+        title="Training data coverage"
+        icon="coaching"
+        description="Coaching notes and heart rate records"
+      >
+        <div className="ar-metric-strip">
+          <Metric
+            label="Coaching notes"
+            value={String(data.summary.coachingCount)}
+            helper="Structured analysis rows"
+          />
+          <Metric
+            label="HR zone rows"
+            value={String(data.summary.zoneCount)}
+            helper="Per-run zone breakdown rows"
+          />
+        </div>
+      </DetailDisclosure>
     </main>
   )
-}
-
-function StatCard({
-  label,
-  value,
-  helper,
-  to,
-}: {
-  label: string
-  value: string
-  helper: string
-  to?: '/runs'
-}) {
-  const content = (
-    <>
-      <h2 className="ar-label">{label}</h2>
-      <div className="ar-stat-value mt-2">{value}</div>
-      <p className="ar-helper mt-2">{helper}</p>
-    </>
-  )
-
-  if (to) {
-    return (
-      <Link
-        to={to}
-        className="ar-card ar-card-pad block transition hover:border-accent hover:bg-card/90"
-      >
-        {content}
-      </Link>
-    )
-  }
-
-  return <div className="ar-card ar-card-pad">{content}</div>
 }

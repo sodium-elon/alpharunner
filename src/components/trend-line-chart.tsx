@@ -136,7 +136,7 @@ export function TrendLineChart({ data }: { data: TrendChartPoint[] }) {
             type="number"
             dataKey="dayValue"
             scale="time"
-            domain={["dataMin", "dataMax"]}
+            domain={['dataMin', 'dataMax']}
             tickFormatter={(value) => formatTrendDayValue(Number(value))}
             tickLine={false}
             tickMargin={10}
@@ -158,7 +158,7 @@ export function TrendLineChart({ data }: { data: TrendChartPoint[] }) {
             width={56}
             tickFormatter={(value) => `${Number(value).toFixed(1)}`}
           />
-          <YAxis yAxisId="strideLengthM" hide domain={["auto", "auto"]} />
+          <YAxis yAxisId="strideLengthM" hide domain={['auto', 'auto']} />
           <Tooltip
             contentStyle={{
               borderRadius: '0.75rem',

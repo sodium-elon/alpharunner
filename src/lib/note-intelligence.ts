@@ -59,26 +59,26 @@ export function buildNoteIntelligenceRequest(note: string): NoteIntelligenceRequ
 
 export const INJURY_RISK_THRESHOLD = 0.6
 
-export interface NoteIntelligenceResult {
+export type NoteIntelligenceResult = {
   runType: RunType
   injuryRisk: number
   injuryRiskFlag: boolean
   enjoyment: number
 }
 
-interface RawChoiceAnswer {
+type RawChoiceAnswer = {
   type: 'choice'
   choice: string
   probabilities: Record<string, number>
   confidence: number
 }
 
-interface RawNoulAnswer {
+type RawNoulAnswer = {
   type: 'noul'
   noul: number
 }
 
-interface RawScoreAnswer {
+type RawScoreAnswer = {
   type: 'score'
   score: number
   legend: Record<string, string>
@@ -86,7 +86,7 @@ interface RawScoreAnswer {
   confidence: number
 }
 
-interface RawResponse {
+type RawResponse = {
   model: string
   answers: {
     runType: RawChoiceAnswer
@@ -121,7 +121,7 @@ export const NOTE_INTELLIGENCE_ENDPOINT = 'https://api.typesafe.ai/v1/systemone'
 export const OPENROUTER_DECISIONS_ENDPOINT = 'https://openrouter.ai/api/alpha/decisions'
 const OPENROUTER_JEV_MODEL = 'typesafe/jev-1.13'
 
-export interface AnalyzeOptions {
+export type AnalyzeOptions = {
   apiKey?: string
   openRouterApiKey?: string
   fetchImpl?: typeof fetch
