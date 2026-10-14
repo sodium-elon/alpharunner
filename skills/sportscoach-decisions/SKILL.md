@@ -25,6 +25,34 @@ A native confirmation answer package contains original current request + Coach q
 
 These are current-request guidance and continuity checks, not cryptographic enforcement. `prepare` respects the supplied date; the caller must supply and compare the current date correctly. Keep resolver unknown/no-match/conflicting-choice checks, transport identity/permissions and pending deadlines unchanged; never invent provenance or extend approval to recover from a mismatch.
 
+## Coach oversight of garbled voice shoe names
+
+Trigger: a native run-log request contains a garbled shoe name, or `resolve-shoe` returns `no_match`, unknown, or a split despite recognizable shoe sounds. The main coach owns the follow-up; a resolver miss is not a reason to discard the request or reinterpret shoe words as food/family chatter.
+
+1. Preserve the current request's original transcript, date, operation and real receipt/message ID. Historical receipts may be inspected when the user explicitly requests a retrospective review, but that review never authorizes replaying their imports.
+2. Run `resolve-shoe --term <original shoe phrase>`. Reuse a valid matched result normally. For unresolved output, fetch `inventory` once and compare the phrase against actual brand/model/variant names, not only the resolver's ranked probabilities.
+3. Review phonetic similarity: syllable rhythm, brand sounds, model sounds, word-boundary substitutions and accent/transliteration errors. A distinctive brand plus compatible model sounds can identify the nearest candidate even when a generic semantic classifier favors none. Never ignore an explicit version/variant conflict, invent an inventory shoe, or infer the worn shoe from recent use or workout suitability.
+4. Distinguish a resolver miss from genuine identity ambiguity. When the original shoe sounds identify one clear live-inventory candidate, no plausible competitor exists, and no explicit version/variant conflicts, resolve identity through coach oversight without asking for routine confirmation. Example: "my diner fish" maps to Dynafish Xiaonian when it is the only Dynafish in inventory. Record the actual inventory ID and provenance as coach-reviewed phonetic resolution, never falsely as a successful automated match. Preserve the raw transcript. A merely highest-ranked but genuinely uncertain candidate remains a proposal: ask one targeted voice yes/no question only in that case. If no defensible candidate exists, say the shoe alone is unresolved.
+5. Reuse the coach-resolved identity or linked user-confirmed candidate with the exact original scope; continue through existing preparation/authorization/import checks. A coach identity resolution does not itself authorize a write or bypass a CLI that still rejects the identity: report that integration blocker rather than inventing confirmation, alias or provenance. Do not repeat semantic resolution to force a winner. Persist aliases only through the supported confirmed-task workflow.
+
+Verification: the selected shoe exists in live inventory; coach-reviewed resolution is distinguished from automated matching; genuine ambiguity gets a binary voice follow-up, but an obvious unique phonetic match does not; original date/operation remain unchanged; any eventual write has genuine scope-linked authorization and transactional readback.
+
+## Voice clarifications are yes/no only
+
+The Alexa/HA voice confirmation transport carries exactly one spoken **yes/no**
+answer and arms a follow-up listen only for a binary question ("Did you mean X —
+yes or no?"). A multi-choice or open question ("which of these two shoes?") is
+spoken one-way and does **not** arm a listen, so John's answer is lost. Over
+voice, when identity remains genuinely ambiguous after the coach's inventory/phonetic review (not merely because the resolver returned `clarify`/`no_match`/split):
+
+- Phrase the question as a single yes/no naming the top candidate, e.g. "Did you
+  mean the Saucony Endorphin — yes or no?" A `no` tries the next real candidate.
+- Never call the interactive `clarify` tool on the voice/API path — it is
+  unavailable there and errors. In the resolver output, `clarify`/`no_match` mean
+  "ask the user", not "invoke the `clarify` tool".
+- Do not ask at all when one candidate is a safe resolver-matched default — pick
+  it and proceed (no routine reconfirmation).
+
 ## Quick read-only facts
 
 For one run's speed, pace, distance, duration, HR, cadence, power or worn shoe,
@@ -44,7 +72,7 @@ Give one short answer with units and date. This is separate from full analysis.
 The main Sportscoach handles routine import/analyze requests directly through this CLI; do not use generic `delegate_task` for routine imports. Specialized research or code repair is separate work, not a prerequisite to logging a run. Do not change code, run tests/builds, install packages, or create scratch scripts merely to log.
 
 1. Preserve the exact original request date and shoe, original text, and actual message/event ID. Resolve relative dates using the request timestamp and user timezone, not a later retry's clock; ask if genuinely ambiguous. Shoe recommendations are never proof of the shoe worn.
-2. Use `prepare` to pin activity/date/shoe in durable task state; immediately read `task-show` and compare scope to the real request. If the initial request clearly authorizes that exact scope, persist its genuine message provenance using `task-confirm` within the existing pending window. Otherwise ask only for missing scope/authorization. Never invent an ID or refresh an expired approval automatically.
+2. Use `prepare` to pin activity/date/shoe in durable task state; immediately read `task-show` and compare scope to the real request. If the initial request clearly authorizes that exact scope, persist its genuine message provenance using `task-confirm` within the existing pending window. Before claiming the Telegram event ID is unavailable, inspect `HERMES_SESSION_MESSAGE_ID` in the live tool environment. `task-confirm` requires `--answer yes` as well as the real `--source-message-id` and exact scope. User authorization and an unrecorded internal authorization receipt are different: describe an internal bookkeeping failure accurately, not as missing user permission. Otherwise ask only for missing scope/authorization. Never invent an ID or refresh an expired approval automatically.
 3. Confirm scope before slower `analyze-run` work. The main Sportscoach reviews evidence and writes actual coaching JSON, then invokes `import-task` for that confirmed task. On interruption, restore with `task-show`; do not start a replacement import blindly.
 4. Read back the task after execution and require the import's `verified:true` and exact activity/date/shoe/counts. The adapter's transactional database read-back is the write verification; a task status alone is not proof. Give a final reply naming the date, shoe, verified imported/already-imported outcome and useful coaching, or the actual blocker. Never end at an acknowledgement or silently omit completion.
 5. On failure, inspect task state once. For Garmin failures, use the sanitized exit/signal/error-code diagnostic and one read-only auth check with the configured absolute executable/token store; never print stdout/profile, tokens, passwords or environment values. ENOENT/EACCES/timeouts are not evidence of expired auth. Only confirmed authentication failures may load `alpharunner-garmin-run-import` with `file_path="references/garmin-auth-recovery-recipe.md"`: one bounded CLI-owned login, one fresh-code retry only for the documented OTP failure, then auth check and authenticated read. No recovery login during read-only diagnostic tasks. If recovery fails, stop and report; do not loop, reimport, write ad-hoc SQL, or deploy/restart anything. A running/failed write needs reconciliation before any retry.
@@ -55,7 +83,7 @@ The main Sportscoach handles routine import/analyze requests directly through th
 
 `inventory`: current real AlphaRunner inventory, not a hardcoded shortlist.
 `resolve-shoe --term <named shoe>`: exact/model/confirmed-alias resolution without Jev; otherwise a Choice over actual IDs plus unknown. Explicit conflicting versions are blocked. `clarify`/`no_match` are not assignments. Never conclude what was worn from inventory or recent history alone. Confirmed task aliases persist outside chat history.
-`recommend-shoes --purpose <actual workout> [--surface treadmill] [--pace 370] [--power-source stryd]`: independent suitability/evidence Scores and caution/mismatch Nouls. Scores are ordinal judgments, not efficiency grades or clinical probabilities. Personal evidence is condition-matched by surface, pace and source; missing comfort stays missing. Excluded candidates stay excluded. Explain limits and alternatives, not a fake medical benefit.
+`recommend-shoes --purpose <actual workout> [--surface treadmill] [--pace 370] [--power-source stryd]`: independent suitability/evidence Scores and caution/mismatch Nouls. Its result has top-level `ranked`, `excluded`, `insufficientEvidence`, and `limitations`; entries identify shoes by `shoeId`, not an embedded model name. Save the first result when reducing output, then inspect/filter that saved JSON by the resolved actual shoe ID. A projection onto guessed keys can return all nulls despite a successful command: inspect the saved result's keys instead of rerunning the semantic request. Zero matched runs means no condition-matched evidence, not zero lifetime use. Recommendation evidence is not a substitute for live total mileage or substantive historical observations. Scores are ordinal judgments, not efficiency grades or clinical probabilities. Personal evidence is condition-matched by surface, pace and source; missing comfort stays missing. Excluded candidates stay excluded. Explain limits and alternatives, not a fake medical benefit.
 
 ## Existing-run shoe corrections
 
