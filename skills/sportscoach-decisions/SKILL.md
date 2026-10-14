@@ -37,19 +37,22 @@ Trigger: a native run-log request contains a garbled shoe name, or `resolve-shoe
 
 Verification: the selected shoe exists in live inventory; coach-reviewed resolution is distinguished from automated matching; genuine ambiguity gets a binary voice follow-up, but an obvious unique phonetic match does not; original date/operation remain unchanged; any eventual write has genuine scope-linked authorization and transactional readback.
 
-## Voice clarifications are yes/no only
+## Binary clarifications in the supported native confirmation workflow
 
-The Alexa/HA voice confirmation transport carries exactly one spoken **yes/no**
-answer and arms a follow-up listen only for a binary question ("Did you mean X —
-yes or no?"). A multi-choice or open question ("which of these two shoes?") is
-spoken one-way and does **not** arm a listen, so John's answer is lost. Over
-voice, when identity remains genuinely ambiguous after the coach's inventory/phonetic review (not merely because the resolver returned `clarify`/`no_match`/split):
+For the supported native Alexa/HA yes/no confirmation workflow, use one bounded
+binary question ("Did you mean X — yes or no?"). Do not assume an open-ended or
+multi-choice spoken question arms this workflow's answer capture. Other voice/API
+sessions may have different capabilities; check their actual transport and tools
+rather than treating this as a universal limitation. When identity remains
+genuinely ambiguous after the coach's inventory/phonetic review (not merely
+because the resolver returned `clarify`/`no_match`/split):
 
 - Phrase the question as a single yes/no naming the top candidate, e.g. "Did you
   mean the Saucony Endorphin — yes or no?" A `no` tries the next real candidate.
-- Never call the interactive `clarify` tool on the voice/API path — it is
-  unavailable there and errors. In the resolver output, `clarify`/`no_match` mean
-  "ask the user", not "invoke the `clarify` tool".
+- Use the session's supported answer-capture path. Do not invoke an interactive
+  `clarify` tool unless it is available in the actual session/toolset and can
+  deliver a usable interaction on that channel. Resolver `clarify`/`no_match`
+  statuses mean "ask the user", not a requirement to invoke that tool.
 - Do not ask at all when one candidate is a safe resolver-matched default — pick
   it and proceed (no routine reconfirmation).
 
