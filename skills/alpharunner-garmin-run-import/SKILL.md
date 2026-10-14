@@ -17,3 +17,9 @@ Main-coach analysis is real structured coaching JSON, not placeholder prose or m
 Complete prior Garmin retrieval/recovery guidance, normalization rules, research and history remain unchanged in /home/john/projects/alpharunner.workspace/alpharunner/skills/alpharunner-garmin-run-import/references/legacy-workflow.md. Read relevant sections only when needed. Its relative reference paths are relative to this import skill directory. Legacy scratch-script recipes are not the normal path.
 
 No deployment, gateway restart, production-row test writes, or unsolicited voice playback is needed to use this CLI.
+
+## Temporary data and requested test verification
+
+Temporary coaching JSON is import data, not application code. Validate its schema, require verified:true, read back the run/task, then remove the artifact. Import verification is not a passing build/test suite.
+
+If an explicit verification request requires tests, inspect failures before changing code. Tests expecting an absent provider credential can be contaminated by inherited environment variables. Confirm the mechanism, isolate only the relevant variable in the test shell, and rerun the canonical test command directly so verification tracking sees the result. Never print keys or change saved credentials to fix a test environment. See references/test-environment-verification.md.
