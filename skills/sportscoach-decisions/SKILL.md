@@ -37,6 +37,14 @@ Trigger: a native run-log request contains a garbled shoe name, or `resolve-shoe
 
 Verification: the selected shoe exists in live inventory; coach-reviewed resolution is distinguished from automated matching; genuine ambiguity gets a binary voice follow-up, but an obvious unique phonetic match does not; original date/operation remain unchanged; any eventual write has genuine scope-linked authorization and transactional readback.
 
+## Resolver review before another voice question
+
+Jev's choice probabilities and confidence describe its judgment; they are not proof that the user was unclear. A `no_match` or `clarify` result sends the main coach to the live-inventory phonetic review above, not directly to a question. Preserve the supplied exact version and compare the brand/model sounds and known transliterations; do not treat a spelling miss as lack of authorization. For example, review “keldal lightning 2.0” against Qiaodan Leili 2.0 and the actual competitors before asking. A version number alone never establishes identity.
+
+Use inventory and existing shoe dossiers for identity review. Product web searches, retired Garmin MCP calls, repeated resolver prompts and generic schema probes are not prerequisites to resolving a routine voice shoe name. Fetch the target date through the existing Garmin CLI path; strength training on the same date is not a competing run. Keep actual multi-run ambiguity unresolved.
+
+When a binary question is genuinely necessary, ask it promptly after the bounded inventory review. The native delayed-turn controller permits 180 seconds for an in-flight question and 30 seconds for an armed answer; preparing a question after the in-flight deadline can suppress its delivery. Do not extend or revive those windows, and do not report a spoken question or a captured answer without the transport evidence. A missing inbound answer does not establish whether the user spoke, whether the microphone opened, or whether a deadline expired.
+
 ## Binary clarifications in the supported native confirmation workflow
 
 For the supported native Alexa/HA yes/no confirmation workflow, use one bounded
@@ -79,6 +87,12 @@ The main Sportscoach handles routine import/analyze requests directly through th
 3. Confirm scope before slower `analyze-run` work. The main Sportscoach reviews evidence and writes actual coaching JSON, then invokes `import-task` for that confirmed task. On interruption, restore with `task-show`; do not start a replacement import blindly.
 4. Read back the task after execution and require the import's `verified:true` and exact activity/date/shoe/counts. The adapter's transactional database read-back is the write verification; a task status alone is not proof. Give a final reply naming the date, shoe, verified imported/already-imported outcome and useful coaching, or the actual blocker. Never end at an acknowledgement or silently omit completion.
 5. On failure, inspect task state once. For Garmin failures, use the sanitized exit/signal/error-code diagnostic and one read-only auth check with the configured absolute executable/token store; never print stdout/profile, tokens, passwords or environment values. ENOENT/EACCES/timeouts are not evidence of expired auth. Only confirmed authentication failures may load `alpharunner-garmin-run-import` with `file_path="references/garmin-auth-recovery-recipe.md"`: one bounded CLI-owned login, one fresh-code retry only for the documented OTP failure, then auth check and authenticated read. No recovery login during read-only diagnostic tasks. If recovery fails, stop and report; do not loop, reimport, write ad-hoc SQL, or deploy/restart anything. A running/failed write needs reconciliation before any retry.
+
+## Failed-import reconciliation
+
+Before retrying an import, inspect the actual `task-show` result and `run-summary`, not a compacted conclusion about missing permission. A failed task may still contain genuine `authorization`; a later generic “actual user confirmation required” error can mean its status is failed, not that the user withheld approval. Inspect the first failure. Check coaching text bounds and enums before import; a rejected payload must be corrected before another write attempt.
+
+When the task failed without a persisted run and the current authorized repair still covers the identical date/activity/shoe, prepare a replacement task, pin that scope and record the genuine current authorization promptly within its normal pending window. Reuse verified evidence for that same activity, with the replacement task ID. Never revive an expired voice answer, invent a message ID, change the selected activity/shoe or reimport an existing run. Preserve the failed task for audit and require verified transactional readback before claiming completion.
 
 ## Intent and execution
 

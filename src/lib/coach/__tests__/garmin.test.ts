@@ -30,7 +30,7 @@ const activity = {
   splits: { lapDTOs: [] }, hrZones: [],
 }
 it('discovers only completed activities on the exact requested calendar date', async () => {
-  const execute = vi.fn(async (_: string, args: string[]) => JSON.stringify(args.includes('check') ? { status: 'ok', profile: {} } : { calendarItems: [
+  const execute = vi.fn(async (_: string, args: string[]) => JSON.stringify(args.includes('check') ? { status: 'ok', profile: {} } : args.includes('get') ? { activityId: 123, activityTypeDTO: { typeKey: 'running' }, summaryDTO: { startTimeLocal: '2026-10-02T10:00:00' } } : { calendarItems: [
     { itemType: 'activity', date: '2026-10-02', id: 123, title: 'Sprint' },
     { itemType: 'fbtAdaptiveWorkout', date: '2026-10-02', id: 999, title: 'Sprint' },
     { itemType: 'activity', date: '2026-10-03', id: 456, title: 'Base' },
@@ -59,4 +59,36 @@ it('verifies explicit activity/date before staging and removes its own temporary
   expect(result.activity.listItem.activityId).toBe(123)
   expect(execute.mock.calls.every(([, args]) => args[0] === '--tokenstore' && args[1] === '/fake/tokens')).toBe(true)
   await expect(access(stagePath)).rejects.toThrow()
+})
+
+it('excludes strength without mistaking a mixed-sport day for multiple runs', async () => {
+  const details: Record<string, unknown> = {
+    '13': { activityId: 13, activityTypeDTO: { typeKey: 'strength_training' }, summaryDTO: { startTimeLocal: '2026-10-14T20:22:22' } },
+    '18': { activityId: 18, activityTypeDTO: { typeKey: 'treadmill_running' }, summaryDTO: { startTimeLocal: '2026-10-14T20:52:05' } },
+  }
+  const execute = async (_: string, args: string[]) => JSON.stringify(args.includes('check') ? { status: 'ok', profile: {} }
+    : args.includes('get') ? details[args.at(-1)!] : { calendarItems: [
+      { itemType: 'activity', date: '2026-10-14', id: 13, title: 'Recovery' },
+      { itemType: 'activity', date: '2026-10-14', id: 18, title: 'Strength' },
+    ] })
+  const gateway = new GarminGateway({ executable: '/fake', tokenStore: '/tokens', execute })
+  expect(await gateway.findActivities('2026-10-14')).toEqual([{ activityId: '18', date: '2026-10-14', title: 'Strength' }])
+})
+
+it('preserves genuine ambiguity between two completed running activities', async () => {
+  const execute = async (_: string, args: string[]) => JSON.stringify(args.includes('check') ? { status: 'ok', profile: {} }
+    : args.includes('get') ? { activityId: Number(args.at(-1)), activityTypeDTO: { typeKey: 'running' }, summaryDTO: { startTimeLocal: '2026-10-14T10:00:00' } }
+      : { calendarItems: [1, 2].map(id => ({ itemType: 'activity', date: '2026-10-14', id, title: 'Run' })) })
+  const gateway = new GarminGateway({ executable: '/fake', tokenStore: '/tokens', execute })
+  expect((await gateway.findActivities('2026-10-14')).map(a => a.activityId)).toEqual(['1', '2'])
+})
+
+it.each([
+  { activityId: 999, activityTypeDTO: { typeKey: 'running' }, summaryDTO: { startTimeLocal: '2026-10-14T10:00:00' } },
+  { activityId: 1, activityTypeDTO: { typeKey: 'running' }, summaryDTO: { startTimeLocal: '2026-10-13T10:00:00' } },
+])('rejects mismatched calendar/detail identity or date', async detail => {
+  const execute = async (_: string, args: string[]) => JSON.stringify(args.includes('check') ? { status: 'ok', profile: {} }
+    : args.includes('get') ? detail : { calendarItems: [{ itemType: 'activity', date: '2026-10-14', id: 1 }] })
+  const gateway = new GarminGateway({ executable: '/fake', tokenStore: '/tokens', execute })
+  await expect(gateway.findActivities('2026-10-14')).rejects.toThrow('Garmin calendar activity identity or date changed')
 })

@@ -52,7 +52,17 @@ export class GarminGateway {
     const day = new Date(`${date}T00:00:00Z`)
     const calendar = await this.json(['fitness', 'calendar', String(day.getUTCFullYear()), String(day.getUTCMonth())])
     const items = calendar && typeof calendar === 'object' && Array.isArray((calendar as { calendarItems?: unknown }).calendarItems) ? (calendar as { calendarItems: Record<string, unknown>[] }).calendarItems : []
-    return items.filter(item => item.itemType === 'activity' && String(item.date).slice(0, 10) === date && /^[1-9]\d*$/.test(String(item.id))).map(item => ({ activityId: String(item.id), date, title: String(item.title ?? '') }))
+    const candidates = items.filter(item => item.itemType === 'activity' && String(item.date).slice(0, 10) === date && /^[1-9]\d*$/.test(String(item.id)))
+    // Calendar titles are user-defined; verify the sport from Garmin's detail.
+    // Keep the same running types supported by the transactional importer.
+    const checked = await Promise.all(candidates.map(async item => {
+      const activityId = String(item.id)
+      const detail = await this.json(['activities', 'get', activityId]) as { activityId?: number; activityTypeDTO?: { typeKey?: string }; summaryDTO?: { startTimeLocal?: string } }
+      if (String(detail.activityId) !== activityId || detail.summaryDTO?.startTimeLocal?.slice(0, 10) !== date) throw new Error('Garmin calendar activity identity or date changed')
+      return ['running', 'treadmill_running'].includes(detail.activityTypeDTO?.typeKey ?? '')
+        ? { activityId, date, title: String(item.title ?? '') } : null
+    }))
+    return checked.filter((item): item is { activityId: string; date: string; title: string } => item !== null)
   }
   async fetchActivity(activityId: string, expectedDate: string): Promise<GarminEvidence> {
     if (!/^\d+$/.test(activityId)) throw new Error('A numeric Garmin activity ID is required')
