@@ -90,7 +90,7 @@ The main Sportscoach handles routine import/analyze requests directly through th
 
 ## Failed-import reconciliation
 
-Before retrying an import, inspect the actual `task-show` result and `run-summary`, not a compacted conclusion about missing permission. A failed task may still contain genuine `authorization`; a later generic “actual user confirmation required” error can mean its status is failed, not that the user withheld approval. Inspect the first failure. Check coaching text bounds and enums before import; a rejected payload must be corrected before another write attempt.
+Before retrying an import, inspect the actual `task-show` result and `run-summary`, not a compacted conclusion about missing permission. A failed task may still contain genuine `authorization`; the error `An actual user confirmation is required before importing` can mean its status is `failed`, not that the user withheld approval. `import-task` requires both `status: confirmed` and genuine `authorization`; a pending task cannot import either. Inspect the true first failure (for example, a validator rejection) and correct the payload before preparing a replacement task under the scope/readback rules below. Check coaching text bounds and enums before import; a rejected payload must be corrected before another write attempt.
 
 When the task failed without a persisted run and the current authorized repair still covers the identical date/activity/shoe, prepare a replacement task, pin that scope and record the genuine current authorization promptly within its normal pending window. Reuse verified evidence for that same activity, with the replacement task ID. Never revive an expired voice answer, invent a message ID, change the selected activity/shoe or reimport an existing run. Preserve the failed task for audit and require verified transactional readback before claiming completion.
 
@@ -122,7 +122,11 @@ pnpm --dir /home/john/projects/alpharunner.workspace/alpharunner -s coach analyz
 
 Add any original-user intent/note to the coach command before the pipe. Detailed
 unprojected output remains available when a material gap requires it; do not
-repeat Jev just to obtain a prettier payload.
+repeat Jev just to obtain a prettier payload. Runner behavior varies: if saved
+output contains a `$ tsx …` command echo before the JSON, remove only that recognized runner banner
+from the saved output before parsing; never blindly drop the first line of valid JSON.
+Keep stderr separate rather than merging diagnostics with JSON. Recover the existing
+captured result; do not repeat Jev or the Garmin fetch merely to fix a projection.
 
 `analyze-run --activity-id <actual Garmin ID> --date YYYY-MM-DD [--user-intent <explicit intent>] [--note <original USER note>]`:
 - Verifies identity/date, stages Garmin data through the pinned CLI, reads detailed metrics and date-scoped calendar/readiness/sleep context.
@@ -162,6 +166,11 @@ not the finished coaching. Keep keyPositive/keyConcern/recommendation at most
 importer rejects audit-length prose rather than truncating it. Technical power
 provenance is bounded separately to 300 characters. Never place generated
 analysis or validation transcripts in `userNote`; that is original-user-only.
+Omit the `userNote` key entirely when no original user text exists. Do NOT pass `"userNote": null`.
+The saved-text validator rejects non-string values, including null, with
+`Invalid text or prohibited injury probability claim`; that error can mark the
+import task `failed` even when the prose contains no injury-probability claim.
+Correct the payload and reconcile task state before another write attempt.
 
 Write the REAL coaching outcome as JSON data (not generated code):
 ```

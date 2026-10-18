@@ -1,6 +1,30 @@
 import { readFile } from 'node:fs/promises'
 import { expect, it } from 'vitest'
 
+it('omits absent original user notes instead of passing null into saved-text validation', async () => {
+  const content = await readFile(new URL('../../../../skills/sportscoach-decisions/SKILL.md', import.meta.url), 'utf8')
+  expect(content).toContain('Omit the `userNote` key entirely when no original user text exists')
+  expect(content).toContain('Do NOT pass `"userNote": null`')
+  expect(content).toContain('Invalid text or prohibited injury probability claim')
+})
+
+it('distinguishes failed-task status from missing authorization without permitting pending imports', async () => {
+  const content = await readFile(new URL('../../../../skills/sportscoach-decisions/SKILL.md', import.meta.url), 'utf8')
+  const recovery = content.split('## Failed-import reconciliation')[1]?.split('\n## ')[0] ?? ''
+  expect(recovery.includes('status: confirmed')).toBe(true)
+  expect(recovery.includes('An actual user confirmation is required before importing')).toBe(true)
+  expect(recovery.includes('pending task cannot import')).toBe(true)
+})
+
+it('recovers captured JSON without blindly dropping data or repeating semantic analysis', async () => {
+  const content = await readFile(new URL('../../../../skills/sportscoach-decisions/SKILL.md', import.meta.url), 'utf8')
+  const analysis = content.split('## Read-only analysis')[1]?.split('\n## ')[0] ?? ''
+  expect(analysis.includes('remove only that recognized runner banner')).toBe(true)
+  expect(analysis.includes('never blindly drop the first line')).toBe(true)
+  expect(analysis.includes('do not repeat Jev')).toBe(true)
+  expect(analysis.includes('tail -n +2')).toBe(false)
+})
+
 it('requires domain evidence and compact stored coaching rather than an audit transcript', async () => {
   const root = new URL('../../../../skills/', import.meta.url)
   const content = await readFile(new URL('running-coaching/SKILL.md', root), 'utf8')
