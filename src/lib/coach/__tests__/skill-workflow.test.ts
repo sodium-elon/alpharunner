@@ -99,3 +99,20 @@ it('routes routine imports directly through the main Sportscoach with a bounded 
     expect(content).toContain('references/legacy-workflow.md')
   }
 })
+
+it('keeps treadmill distance uncertainty and concise voice evidence source-bound', async () => {
+  const coaching = await readFile(new URL('../../../../skills/running-coaching/SKILL.md', import.meta.url), 'utf8')
+  for (const phrase of [
+    'Treadmill distance conflicts and concise voice debriefs',
+    'compare duration totals too',
+    'neither distance is automatically ground truth',
+    'Preserve raw imported measurements',
+    'Narrow power variability proves control, not easy effort',
+    'Without dated CP',
+    'HR drift alone proves neither sensor failure nor physiological decoupling',
+    'do not upgrade this to economy or fitness improvement',
+    'Saved dashboard prose does not replace the spoken debrief',
+  ]) {
+    expect(coaching).toContain(phrase)
+  }
+})
