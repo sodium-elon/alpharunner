@@ -108,6 +108,16 @@ Validate the actual field limits below, exact IDs/dates/shoes and repository
 enums, then parse/read back the artifact. A permissive invented length check
 (e.g. 2000 characters per field) is not validation of importer constraints.
 
+## Treadmill distance conflicts and concise voice debriefs
+
+When `features.distanceMismatchM` or `confidenceGaps` flags inconsistent summary/lap distance, compare duration totals too. Equal durations with different distances support a distance/calibration discrepancy, not missing elapsed time. Calculate both paces with a tool and label their bases; neither distance is automatically ground truth. Preserve raw imported measurements and explain the discrepancy rather than silently correcting distance, selecting the faster headline, or declaring a personal best.
+
+Use validated power continuity, duration and late mechanics to describe execution while distance remains unresolved. Narrow power variability proves control, not easy effort or a physiological zone. Without dated CP, distinguish descriptive steady-power execution from calibrated intensity; keep Garmin benefit/load and user RPE separate. HR drift alone proves neither sensor failure nor physiological decoupling. Do not mark HR questionable solely because it rises against stable power; identify actual evidence for a reliability concern or preserve uncertainty explicitly.
+
+A longer continuous exposure versus a verified earlier treadmill run can support endurance consistency when pace comparison is blocked. Label differences in duration, workout and shoe; do not upgrade this to economy or fitness improvement. A prior run labelled Sprint and its whole-run average do not establish actual sprint volume or justify cancelling a future adaptive workout.
+
+A brief voice completion still needs verified date/shoe/import, an execution finding, the material measurement limitation, plan fit or its missing target, and one recovery action. Include source-labelled power when it drives the verdict, and disclose inferred rather than metadata-supplied units when applicable. Saved dashboard prose does not replace the spoken debrief. Keep audit IDs and descriptor detail out of speech unless requested.
+
 ## Stored coaching is a synthesis, not a telemetry dump
 
 Use October 1's compact field-based style: `keyPositive` explains the meaningful

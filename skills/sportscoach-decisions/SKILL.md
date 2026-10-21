@@ -25,6 +25,16 @@ A native confirmation answer package contains original current request + Coach q
 
 These are current-request guidance and continuity checks, not cryptographic enforcement. `prepare` respects the supplied date; the caller must supply and compare the current date correctly. Keep resolver unknown/no-match/conflicting-choice checks, transport identity/permissions and pending deadlines unchanged; never invent provenance or extend approval to recover from a mismatch.
 
+## Short follow-ups, quoted transcripts and evidence quality
+
+Quotation marks alone do not establish that a message is hypothetical or retrospective. Read the current exchange: a shoe statement, an explicit instruction to add the run, and a weekday answer can jointly complete one current request. If troubleshooting context genuinely leaves the date ambiguous, ask only for the missing date. Once the user supplies it, preserve the already-resolved shoe and operation and proceed without another routine confirmation. Resolve the weekday using the receipt timestamp and user timezone, state the resulting calendar date, and verify that exact date against Garmin and existing AlphaRunner records. Do not borrow a historical run merely because it was also on Monday.
+
+Preserve the original messages verbatim in task evidence, with their real message IDs when available. Put normalized date, canonical shoe and coach-reviewed phonetic resolution in separately identified annotations; do not present a rewritten composite as a verbatim user quote. A clarification message completes earlier explicit authorization only for that same linked scope; it is not itself an invented spoken yes.
+
+Execution acknowledgments, exit code zero and truncated tool banners are not substantive evidence of file contents, request timelines or successful writes. Recover the actual saved output or use bounded read-back before reporting facts. When parsing saved JSON, read the raw file rather than JSON-decoding a line-numbered `read_file` presentation. Recover the existing capture instead of rerunning expensive analysis solely for formatting.
+
+For voice incident explanations, distinguish observation, hypothesis and verified cause. A later yes reaching the backend does not prove the microphone/session was open for the original question. A 30-second expiry is a possible mechanism, not proof it orphaned an answer that was never observed inbound. A missing expected log file does not prove logging is broken. Require linked request/delivery/answer/expiry evidence before declaring root cause; keep synthetic endpoint checks separate from an end-to-end spoken retest. See [evidence checklist](references/request-continuity-and-voice-evidence.md).
+
 ## Coach oversight of garbled voice shoe names
 
 Trigger: a native run-log request contains a garbled shoe name, or `resolve-shoe` returns `no_match`, unknown, or a split despite recognizable shoe sounds. The main coach owns the follow-up; a resolver miss is not a reason to discard the request or reinterpret shoe words as food/family chatter.
