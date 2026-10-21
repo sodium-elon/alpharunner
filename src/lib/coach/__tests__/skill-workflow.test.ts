@@ -1,6 +1,33 @@
 import { readFile } from 'node:fs/promises'
 import { expect, it } from 'vitest'
 
+it('keeps linked multi-turn imports evidence-bound through completion and voice incident review', async () => {
+  const root = new URL('../../../../skills/sportscoach-decisions/', import.meta.url)
+  const referencePath = 'references/request-continuity-and-voice-evidence.md'
+  const reference = await readFile(new URL(referencePath, root), 'utf8').catch((error: NodeJS.ErrnoException) => {
+    if (error.code === 'ENOENT') return ''
+    throw error
+  })
+  expect(reference, 'current-request evidence guidance must be present in canonical source').not.toBe('')
+  const decisions = await readFile(new URL('SKILL.md', root), 'utf8')
+  expect(decisions).toContain(`](${referencePath})`)
+
+  const continuity = reference.split('## Multi-turn import pattern')[1]?.split('\n## ')[0] ?? ''
+  expect(continuity).toContain('combine only linked current turns')
+  expect(continuity).toMatch(/unique live-inventory phonetic shoe[\s\S]*receipt\/user timezone[\s\S]*exact-date existing runs[\s\S]*prepare, scope-check[\s\S]*persist actual authorization before slow analysis/)
+  expect(continuity).toContain('Never substitute an old same-weekday activity')
+
+  const evidence = reference.split('## Evidence ladder')[1]?.split('\n## ')[0] ?? ''
+  for (const phrase of ['proves invocation, not returned data', 'not a resolver match, DB import or log finding', 'transactional `verified:true`', 'matching activity/date/shoe, child counts and current run summary', 'Line-numbered text output is a display format', 'without repeating Garmin/Jev analysis']) {
+    expect(evidence).toContain(phrase)
+  }
+
+  const voice = reference.split('## Voice incident checklist')[1] ?? ''
+  for (const phrase of ['actual delivery', 'answer receipt', 'Separate synthetic YesIntent delivery from the real spoken-answer route', 'No linked inbound answer was found in the inspected source/window', 'capture/routing cause remains unverified', "Respect the user's testimony", 'Do not infer that an unobserved answer expired', 'establish the active log source', 'Do not manufacture a timeline', 'exercised reproduction and retest', 'never extend authorization windows']) {
+    expect(voice).toContain(phrase)
+  }
+})
+
 it('omits absent original user notes instead of passing null into saved-text validation', async () => {
   const content = await readFile(new URL('../../../../skills/sportscoach-decisions/SKILL.md', import.meta.url), 'utf8')
   expect(content).toContain('Omit the `userNote` key entirely when no original user text exists')

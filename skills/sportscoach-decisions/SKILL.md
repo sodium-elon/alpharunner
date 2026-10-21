@@ -13,6 +13,8 @@ Use these existing handlers. Never create a temporary JS/TS script, rediscover G
 
 ## Current-request scope
 
+For linked multi-turn imports, completion evidence and retrospective voice review, follow [Request continuity and voice evidence](references/request-continuity-and-voice-evidence.md). This supplements the scope and authorization checks below; it does not change transport deadlines or authorize replay.
+
 Before any lookup, routing, preparation or task recovery, anchor this operation to the current receipt: preserve its original text, request/message/event ID, receipt timestamp, explicit date, named shoe and requested operation. The current request ID, receipt timestamp and explicit date outrank compressed summaries, previous conversation state and archived task context. Resolve a relative date only from that receipt's timestamp and user timezone; never replace an explicit date with yesterday, a previous run or the retry clock. If the current receipt is unavailable or contradictory, ask for the missing scope instead of borrowing history.
 
 Never reopen archived receipts or previous requests to reconstruct the current operation. Restore with `task-show` only for a task demonstrably linked to this current request, and compare its original request, operation, date, activity and shoe before continuing. A historical task with different scope is not a continuation. Never volunteer an old run's speed or shoe when handling a current import/clarification; historical comparisons belong only to explicitly requested analysis and must stay labelled as history.
