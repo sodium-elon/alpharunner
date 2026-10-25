@@ -6,25 +6,27 @@ Scripts for transforming Garmin Connect activity data and writing it to the Alph
 
 Importing runs is a two-step process:
 
-1. **Fetch** — use the Garmin MCP tools to pull activity data and save it as `garmin-staged.json`
+1. **Fetch** — use the pinned Personal API CLI to stage activity data as `garmin-staged.json`
 2. **Sync** — run `pnpm db:sync-garmin -- --shoe-id <uuid>` to read that file and write to the database with an explicit shoe assignment
 
 ---
 
 ## Step 1 — Produce garmin-staged.json
 
-Using the Garmin MCP tools, call the following four tools for each activity you want to import
-and assemble the results into a single JSON file saved at `garmin-staged.json` in the workspace
-root (the `alpharun/` directory, next to `import-seed.json`).
+Use the pinned Personal API CLI; do not manually assemble responses or invoke retired MCP tools:
 
-### Tools to call per activity
+```bash
+GARMIN_CLI=/home/john/projects/garmin-cli.workspace/garmin-cli/.venv/bin/garmin-cli
+GARMIN_ENV=/home/john/projects/alpharunner.workspace/env-profiles/local.env
+GARMIN_TOKENS=/home/john/.garmin-cli/tokens
+"$GARMIN_CLI" --env-file "$GARMIN_ENV" --tokenstore "$GARMIN_TOKENS" stage --activity <numeric-id> --out /absolute/private/garmin-staged.json
+```
 
-| Field in staged file | MCP tool | Input |
-|---|---|---|
-| `listItem` | `list-activities` | use `limit` and `start` to page; one array item per activity |
-| `detail` | `get-activity` | `activityId` |
-| `splits` | `get-activity-splits` | `activityId` |
-| `hrZones` | `get-activity-hr-zones` | `activityId` |
+The protected external env file provides `GARMIN_PERSONAL_API_KEY` or migration alias `GARMIN_TOKEN`. The CLI manages bearer acquisition/renewal on demand; browser/password/email-MFA authentication and session-prewarming are retired with no fallback. Secrets never belong in command arguments or Git.
+
+The CLI returns the same `listItem`, `detail`, `splits` and `hrZones` contract. Activity search/summary come from Personal API reads; laps and activity-zone data are decoded from the original FIT download because the former JSON routes are unavailable. Preserve native/developer power provenance and verify the local date/numeric activity identity. No missing measurements may be fabricated to satisfy staging.
+
+The normal Sportscoach import path stages exactly the confirmed activity and then performs the authorized transactional import. Direct sync commands below are maintenance interfaces, not a replacement for date/shoe authorization.
 
 ### Expected file format
 

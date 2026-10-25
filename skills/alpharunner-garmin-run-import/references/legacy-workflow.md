@@ -45,7 +45,7 @@ You are the uncompromising gatekeeper of the training log. Before a Garmin run b
    - Garmin script docs: `/home/john/projects/alpharunner.workspace/alpharunner/scripts/garmin/README.md`
 2. Verify the canonical Garmin CLI service before assuming the sync works.
    - Run the absolute-path `garmin-cli --tokenstore /home/john/.garmin-cli/tokens auth check` described below; require `status: ok` and a real profile. Do not print the returned private profile in chat.
-   - If the CLI session is invalid, follow `references/garmin-auth-recovery-recipe.md`: bounded CLI-owned login, then verify `auth check` and an authenticated activity read. Do not switch to the retired MCP or a second token store.
+   - The Personal API key is loaded through `--env-file /home/john/projects/alpharunner.workspace/env-profiles/local.env`. Follow `references/garmin-auth-recovery-recipe.md`: the CLI owns bounded on-demand bearer renewal. Do not use password login, email MFA, retired MCP or a second token store.
    - **Cross-platform requirement:** Auth recovery is interface-agnostic; use the same CLI token store on Discord, Telegram, or CLI.
 3. Resolve the requested calendar date before any write.
    - Relative words such as `today` and `yesterday` are anchored to the timestamp of John's message in his local context, not the session-start date and not the agent's current wall clock after midnight.
@@ -62,8 +62,9 @@ Use this executable and token store for every Garmin call, regardless of profile
 
 ```bash
 GARMIN_CLI=/home/john/projects/garmin-cli.workspace/garmin-cli/.venv/bin/garmin-cli
+GARMIN_ENV=/home/john/projects/alpharunner.workspace/env-profiles/local.env
 GARMIN_TOKENS=/home/john/.garmin-cli/tokens
-$GARMIN_CLI --tokenstore "$GARMIN_TOKENS" auth check
+$GARMIN_CLI --env-file "$GARMIN_ENV" --tokenstore "$GARMIN_TOKENS" auth check
 ```
 
 The app imports Garmin in two deterministic phases:
@@ -300,51 +301,19 @@ If John asks to chat about a run compared with previous runs:
 4. Before delivering the analysis, state whether each run is **already stored**, **newly imported and verified**, or **analysed from Garmin only, not yet stored**. Never let an analysis response imply persistence when no database write happened. If the request explicitly calls for AlphaRunner logging, perform the full import, coaching-note, verification, and cleanup gates in this skill before finalizing. If it is solely a discussion request, do not silently mutate the training log; make the distinction clear and offer import if absent.
 5. Answer with practical coaching: Summary, Risk, Next adjustment. Keep separate runs, shoes, telemetry sources, and dates distinct; never collapse a two-run comparison into one workout.
 
-## Garmin session recovery and email validation
+## Garmin Personal API authentication
 
-When garmin-cli reports `401 session invalid/expired`, treat that as an authentication/session-refresh problem, not as "no run today" and not as a reason to ask John immediately.
-
-**SEE:** `references/garmin-auth-recovery-recipe.md` for the complete bounded CLI recovery recipe.
-
-**SEE ALSO:** `references/check-existing-before-import.md` for the mandatory pre-import database check to prevent duplicate runs. This check is CRITICAL before any import operation.
-
-**Quick summary:**
-
-1. Check the shared CLI token store before attempting login:
+Use `references/garmin-auth-recovery-recipe.md` as the sole authentication procedure. The CLI exchanges the Personal API key for a bearer credential and renews it on demand. No browser, mailbox access, email MFA, password login, daemon restart or scheduled session maintenance is part of this workflow.
 
 ```bash
 GARMIN_CLI=/home/john/projects/garmin-cli.workspace/garmin-cli/.venv/bin/garmin-cli
-GARMIN_ENV=/home/john/projects/garmin-cli.workspace/env-profiles/local.env
+GARMIN_ENV=/home/john/projects/alpharunner.workspace/env-profiles/local.env
 GARMIN_TOKENS=/home/john/.garmin-cli/tokens
-"$GARMIN_CLI" --tokenstore "$GARMIN_TOKENS" auth check
+"$GARMIN_CLI" --env-file "$GARMIN_ENV" --tokenstore "$GARMIN_TOKENS" auth check
+"$GARMIN_CLI" --env-file "$GARMIN_ENV" --tokenstore "$GARMIN_TOKENS" activities list --limit 1 --start 0
 ```
 
-2. If and only if the session is invalid or expired, run one CLI-owned login:
-
-```bash
-"$GARMIN_CLI" --env-file "$GARMIN_ENV" --tokenstore "$GARMIN_TOKENS" auth login
-```
-
-`garmin-cli` submits the Garmin credentials, arms its Gmail OTP waiter before login, accepts only a fresh Garmin code, and saves the refreshed session to the shared token store. Credentials and OTPs must never be printed or pasted into chat. No browser, Playwright process, HTTP bridge, or daemon restart is involved.
-
-3. Verify both the saved session and a real authenticated read:
-
-```bash
-"$GARMIN_CLI" --tokenstore "$GARMIN_TOKENS" auth check
-"$GARMIN_CLI" --tokenstore "$GARMIN_TOKENS" activities list --limit 1 --start 0
-```
-
-Continue only when both commands exit 0 and return valid JSON. If login reports `INVALID CODE` or times out waiting for the fresh email, rerun the complete login once so Garmin issues a new challenge. If the second attempt fails, report the exact redacted blocker and stop; do not loop or revive MCP.
-
-Operational pitfalls:
-
-- Hermes sessions may have a profile-local `$HOME`; always pass the absolute token-store and env-file paths above.
-- Do not run package installs or dependency upgrades during a routine import request. Report a missing-runtime blocker instead.
-- Do not pre-fetch or manually paste an OTP, and do not set `GARMIN_EMAIL_CODE`.
-- Keep `/home/john/projects/garmin-cli.workspace/env-profiles/local.env` at mode `0600`; it is the CLI-owned credential source.
-- **`tsx -e` top-level await pitfall:** wrap DB probes in an async IIFE rather than modifying the TypeScript toolchain.
-
-4. After login completes, verify with `garmin-cli auth check` and `garmin-cli activities list --limit 1 --start 0`. Only then fetch or stage activities.
+Require valid JSON and exit 0. A missing/rejected key is an explicit blocker, not proof of no activity. Do not add agent retry loops or revive the retired authentication mechanism. Keep the external env file at mode 0600. Personal API calendar/readiness are unavailable; do not invent a scheduled plan or recovery score.
 
 5. **Activity sync timing:** When John asks for "today's run", Garmin may not have synced the most recent activity yet. Garmin sync typically occurs when the watch connects to phone/charger with internet. Check the actual `activities list` result; if the most recent activity is from yesterday evening, report that state honestly rather than inventing a current-day run.
 
@@ -352,13 +321,13 @@ Operational pitfalls:
 
    If John then says **"check again"**, do not repeat the stale result. Re-run `auth check` and `activities list`. If the new current-day activity is present, continue the existing import workflow immediately using the already resolved shoe when unambiguous, then write coaching notes and verify DB state. See `references/recheck-newly-synced-run.md`.
 
-If the automated email path succeeds, continue staging/syncing without asking John. If it fails because of a real credential/security boundary, say exactly which boundary blocked you. No vague "I need re-auth" belly-flopping.
+After verified Personal API reads, continue the already-authorized staging workflow. If the key is rejected after the CLI's bounded renewal, report that exact redacted boundary and stop.
 
 ## Failure modes
 - Missing shoe: ask for it before import.
-- Garmin `401 session invalid/expired`: follow the CLI recovery recipe above before blocking John.
-- Missing CLI credential or Gmail app-password variable: report the exact missing key without printing values; do not use the old MCP credential file.
-- Fresh-code timeout or `INVALID CODE`: rerun the complete CLI login once. If the second attempt fails, stop and report the redacted error.
+- Garmin authentication rejected: follow the Personal API key recipe above; no password/MFA or MCP fallback.
+- Missing Personal API key: report the setting name without printing values; use only the existing protected external env file.
+- Unsupported capability: report unavailable data explicitly, never retry authentication or fabricate telemetry.
 
 - Garmin connectivity/auth failure after recovery attempt: report the real blocker; do not fake sync.
 - Missing staged file or malformed staged data: regenerate/fix staging; do not hand-edit fantasy metrics.
@@ -391,11 +360,6 @@ Next adjustment: <one concrete next action>
 Verified: run + shoe + coaching note found in AlphaRunner DB.
 ```
 
-## When auth recovery does not succeed on the first pass
+## When Personal API authentication remains unavailable
 
-There is one routine path: the pinned `garmin-cli auth login` command in the recovery recipe. If the first attempt returns `INVALID CODE` or times out waiting for a fresh code:
-
-1. Rerun the complete CLI login once so Garmin creates a new challenge. Do not pass `GARMIN_EMAIL_CODE`.
-2. If the second attempt fails, report the exact redacted error and stop. Do not revive MCP, switch to browser automation, or substitute FIT/GPX.
-
-Only escalate to a different path if John explicitly asks for it. Do not volunteer browser/FIT/GPX fallbacks as a way to escape the retry loop — that abandonment is the exact failure pattern this skill exists to prevent.
+The CLI owns bounded on-demand token acquisition and renewal. If it still rejects the key, stop and report the sanitized blocker. Never revive browser/MFA, mailbox access or the retired MCP/watchdog as a fallback. Key rotation is performed through Garmin Connect by John; do not request a secret in chat.

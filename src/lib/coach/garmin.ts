@@ -21,10 +21,10 @@ export type GarminEvidence = {
 // A fixed, bounded data-fetch workflow. No generated scripts, shell commands,
 // retired MCP, or model-selected Garmin endpoints.
 export class GarminGateway {
-  constructor(private readonly options: { executable: string; tokenStore: string; execute?: GarminExecutor }) {}
+  constructor(private readonly options: { executable: string; tokenStore: string; envFile?: string; execute?: GarminExecutor }) {}
 
   private async run(args: string[]): Promise<string> {
-    try { return await (this.options.execute ?? defaultExecute)(this.options.executable, ['--tokenstore', this.options.tokenStore, ...args]) }
+    try { return await (this.options.execute ?? defaultExecute)(this.options.executable, ['--tokenstore', this.options.tokenStore, ...(this.options.envFile ? ['--env-file', this.options.envFile] : []), ...args]) }
     catch (error) {
       // Never retain the original error/cause: execFile errors include argv,
       // private stdout/stderr and sometimes credentials. Only bounded metadata.
@@ -49,18 +49,24 @@ export class GarminGateway {
     z.iso.date().parse(date)
     const auth = await this.json(['auth', 'check']) as { status?: string; profile?: unknown }
     if (auth.status !== 'ok' || !auth.profile) throw new Error('Garmin authentication is not valid')
-    const day = new Date(`${date}T00:00:00Z`)
-    const calendar = await this.json(['fitness', 'calendar', String(day.getUTCFullYear()), String(day.getUTCMonth())])
-    const items = calendar && typeof calendar === 'object' && Array.isArray((calendar as { calendarItems?: unknown }).calendarItems) ? (calendar as { calendarItems: Record<string, unknown>[] }).calendarItems : []
-    const candidates = items.filter(item => item.itemType === 'activity' && String(item.date).slice(0, 10) === date && /^[1-9]\d*$/.test(String(item.id)))
-    // Calendar titles are user-defined; verify the sport from Garmin's detail.
+    const candidates = new Map<string, Record<string, unknown>>()
+    for (let start = 0; ; start += 100) {
+      const items = await this.json(['activities', 'list', '--start-date', date, '--end-date', date, '--activity-type', 'running', '--limit', '100', '--start', String(start)])
+      if (!Array.isArray(items)) throw new Error('Garmin activity list is invalid')
+      for (const item of items) {
+        if (item && String(item.startTimeLocal).slice(0, 10) === date && /^[1-9]\d*$/.test(String(item.activityId))) candidates.set(String(item.activityId), item)
+      }
+      if (items.length < 100) break
+      if (start === 900) throw new Error('Garmin activity search exceeded its bounded page limit')
+    }
+    // Activity titles are user-defined; verify the sport from Garmin's detail.
     // Keep the same running types supported by the transactional importer.
-    const checked = await Promise.all(candidates.map(async item => {
-      const activityId = String(item.id)
+    const checked = await Promise.all([...candidates.values()].map(async item => {
+      const activityId = String(item.activityId)
       const detail = await this.json(['activities', 'get', activityId]) as { activityId?: number; activityTypeDTO?: { typeKey?: string }; summaryDTO?: { startTimeLocal?: string } }
-      if (String(detail.activityId) !== activityId || detail.summaryDTO?.startTimeLocal?.slice(0, 10) !== date) throw new Error('Garmin calendar activity identity or date changed')
+      if (String(detail.activityId) !== activityId || detail.summaryDTO?.startTimeLocal?.slice(0, 10) !== date) throw new Error('Garmin activity identity or date changed')
       return ['running', 'treadmill_running'].includes(detail.activityTypeDTO?.typeKey ?? '')
-        ? { activityId, date, title: String(item.title ?? '') } : null
+        ? { activityId, date, title: String(item.activityName ?? '') } : null
     }))
     return checked.filter((item): item is { activityId: string; date: string; title: string } => item !== null)
   }
@@ -88,22 +94,12 @@ export class GarminGateway {
   }
 
   private async fetchContext(date: string): Promise<GarminEvidence['context']> {
-    const day = new Date(`${date}T00:00:00Z`)
-    const start = new Date(+day - 7 * 86400000), end = new Date(+day + 7 * 86400000)
-    const months = new Map([start, day, end].map(d => [`${d.getUTCFullYear()}-${d.getUTCMonth()}`, d]))
-    const errors: string[] = []
-    const optional = async (name: string, args: string[]) => {
-      try { return await this.json(args) }
-      catch { errors.push(name); return null }
-    }
-    const [calendars, readiness, sleep] = await Promise.all([
-      Promise.all([...months.values()].map(d => optional('calendar', ['fitness', 'calendar', String(d.getUTCFullYear()), String(d.getUTCMonth())]))),
-      optional('readiness', ['fitness', 'training-readiness', '--date', date]),
-      optional('sleep', ['wellness', 'sleep', '--date', date]),
-    ])
-    const calendar = calendars.flatMap(c => (c as { calendarItems?: Record<string, unknown>[] } | null)?.calendarItems ?? [])
-      .filter(r => ['activity', 'fbtAdaptiveWorkout'].includes(String(r.itemType)) && String(r.date).slice(0, 10) >= start.toISOString().slice(0, 10) && String(r.date).slice(0, 10) <= end.toISOString().slice(0, 10))
-      .map(r => Object.fromEntries(['date', 'title', 'itemType', 'id', 'trainingPlanId', 'workoutUuid', 'duration', 'distance'].map(k => [k, r[k]])))
-    return { calendar, readiness, sleep, errors }
+    // Unsupported Personal API context is unknown, not an empty future plan.
+    // Do not retry the retired fitness/calendar or training-readiness routes.
+    const errors = ['calendar unavailable: Personal API does not support planned workouts', 'readiness unavailable: Personal API does not support training readiness']
+    let sleep: unknown = null
+    try { sleep = await this.json(['wellness', 'sleep', '--date', date]) }
+    catch { errors.push('sleep') }
+    return { calendar: [], readiness: null, sleep, errors }
   }
 }

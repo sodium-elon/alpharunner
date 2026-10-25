@@ -21,7 +21,7 @@ export type CoachDependencies = {
 /** Fixed handlers: a classifier cannot call persistence or provide authorization. */
 export function createCoachServices(environment: CoachEnvironment, dependencies: CoachDependencies = {}): CommandHandlers {
   const runner = dependencies.runner ?? createDecisionRunner({ apiKey: environment.apiKey, openRouterApiKey: environment.openRouterApiKey })
-  const gateway = dependencies.gateway ?? new GarminGateway({ executable: environment.garminExecutable, tokenStore: environment.garminTokenStore })
+  const gateway = dependencies.gateway ?? new GarminGateway({ executable: environment.garminExecutable, tokenStore: environment.garminTokenStore, envFile: environment.garminEnvFile })
   const store = new TaskStore(environment.stateRoot)
   async function withRepository<T>(work: (repository: PostgresRepository) => Promise<T>) {
     const repository = dependencies.openRepository?.() ?? createPostgresRepository(environment.databaseUrl ?? '')

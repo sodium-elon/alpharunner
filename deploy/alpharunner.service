@@ -1,0 +1,18 @@
+# Canonical AlphaRunner service. Install only from verified released main.
+[Unit]
+Description=AlphaRunner (built) — :3050
+After=network-online.target palladium.service
+Wants=network-online.target
+Requires=palladium.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/john/projects/alpharunner.workspace/srv
+Environment=PATH=/home/john/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/home/john/.local/bin/node /home/john/projects/alpharunner.workspace/srv/run.mjs
+Restart=always
+RestartSec=5
+TimeoutStopSec=15
+
+[Install]
+WantedBy=default.target

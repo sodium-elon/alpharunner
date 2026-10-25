@@ -6,6 +6,8 @@ version: 2.0.0
 
 # Running coaching — operational entry point
 
+Garmin transport is the pinned CLI's Personal API-only backend. Use the import skill's explicit external env-file configuration; do not use browser/password/email-MFA recovery, Garmin MCP or session-prewarming jobs. Calendar/adaptive recommendations and training readiness are unavailable through this backend: report missing context, not "no active plan" or zero readiness. Historical reference commands for unavailable capabilities are not instructions to revive the old transport. Use available sleep/HRV/daily stats, actual completed telemetry, recent stored workload and current user symptoms; recommendations remain conditional where plan/recovery evidence is missing.
+
 For imports and full analyses, read /home/john/projects/alpharunner.workspace/alpharunner/skills/sportscoach-decisions/SKILL.md for the executable workflow. For simple factual questions, the Quick factual run questions section below is sufficient: use its handler directly instead of loading the full import workflow. The main Sportscoach executes routine imports directly, never via generic `delegate_task`; preserve exact request date/shoe and real message provenance, durable approval, verified read-back, bounded recovery and a final reply.
 
 Use `pnpm --dir /home/john/projects/alpharunner.workspace/alpharunner -s coach --help` and its existing handlers. Do not create one-off analysis/import scripts or run builds/tests for a routine coaching request. Code calculates, Jev makes bounded judgments, the main coach provides the real analysis. Unknown or low-confidence judgments are not facts and not permission to write.
