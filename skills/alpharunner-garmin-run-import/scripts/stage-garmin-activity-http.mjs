@@ -10,6 +10,7 @@ if (!activityId || !/^\d+$/.test(activityId)) {
 }
 const cli = '/home/john/projects/garmin-cli.workspace/garmin-cli/.venv/bin/garmin-cli'
 const result = spawnSync(cli, [
+  '--env-file', '/home/john/projects/alpharunner.workspace/env-profiles/local.env',
   '--tokenstore', '/home/john/.garmin-cli/tokens',
   'stage', '--activity', activityId, '--out', outputPath,
 ], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })

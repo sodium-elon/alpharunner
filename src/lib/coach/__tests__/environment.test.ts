@@ -20,8 +20,14 @@ it('loads a configured shared credential path without depending on terminal HOME
   expect(env.apiKey).toBe('fixture-shared-only')
   expect(env.garminExecutable).toBe('/real/pinned/garmin-cli')
   expect(env.garminTokenStore).toBe('/real/pinned/tokens')
+  expect(env.garminEnvFile).toBe(projectEnv)
   expect(env.stateRoot).toBe('/real/pinned/tasks')
   expect(JSON.stringify(env.diagnostics)).not.toContain('fixture-shared-only')
+})
+
+it('selects an explicit Garmin env file without exposing its credentials', async () => {
+  const env = await loadCoachEnvironment({ projectEnv: '/nonexistent/project.env', sharedEnv: '/nonexistent/shared.env', processEnv: { COACH_GARMIN_ENV: '/private/garmin.env' } })
+  expect(env.garminEnvFile).toBe('/private/garmin.env')
 })
 
 it('uses the existing shared Jev key without copying or exposing it in diagnostics', async () => {

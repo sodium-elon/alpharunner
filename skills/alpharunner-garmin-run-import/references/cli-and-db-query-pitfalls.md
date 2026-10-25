@@ -51,9 +51,15 @@ try {
 
 After successful query-back verification, delete the exact temporary file under the skill's scratch-file hygiene rules.
 
-## Garmin calendar syntax, month indexing, and item classification
+## Personal API activity discovery and unavailable calendar
 
-`garmin-cli fitness calendar` takes **positional arguments**, not `--year` / `--month` flags:
+The Personal API backend does not expose the former Garmin calendar. Use `activities list --start-date YYYY-MM-DD --end-date YYYY-MM-DD --activity-type running` for completed run discovery; page through results and verify numeric activity ID/local date against its detail. This does not fetch future adaptive recommendations.
+
+The historical calendar field distinctions remain useful for interpreting previously stored evidence, but do not call the old endpoint or revive MCP for them. Missing calendar access means plan context is unknown, not that John has no active plan.
+
+### Historical calendar syntax and item classification (not executable on Personal API)
+
+The retired endpoint used positional arguments; the following examples are historical only:
 
 ```text
 garmin-cli fitness calendar <year> <zero-based-month>

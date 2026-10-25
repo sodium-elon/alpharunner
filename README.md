@@ -83,47 +83,29 @@ Mocked endpoints:
 | `GET /api/runs/:runId` | `getMockRunDetail` — builds deterministic laps + HR zones per seed run |
 | `GET /api/shoes/:shoeId` | `getMockShoeDetail` |
 
-## Garmin MCP data import
+## Garmin Personal API import
 
-Activity data is imported from Garmin Connect via a local MCP server at `~/www/garminme/garmin-mcp`. The public reference implementation [eddmann/garmin-connect-mcp](https://github.com/eddmann/garmin-connect-mcp) documents the full Garmin API surface and is useful background reading, but its tool names and response shapes differ from our server.
+AlphaRunner and Sportscoach use the pinned `garmin-cli` Personal API backend, not a local MCP server. The CLI exchanges the personal key for a bearer token and renews it on demand; password login, browser automation, mailbox MFA and session-prewarming jobs are retired. There is no legacy authentication fallback.
 
-### Our server's tools (verified)
+Keep `GARMIN_PERSONAL_API_KEY` (migration alias `GARMIN_TOKEN`) in the protected external `env-profiles/local.env`, never in source, command arguments or logs. AlphaRunner explicitly passes that env-file path to its CLI subprocesses.
 
-| Tool | Returns |
-|---|---|
-| `list-activities` | Paginated activity list — id, date, type, distance, duration, HR, cadence |
-| `get-activity` | Full activity summary — pace, power, stride, vertical oscillation, TE, stamina |
-| `get-activity-splits` | Per-lap data — boundaries (m/s), pace, HR, cadence, power, biomechanics, GPS |
-| `get-activity-hr-zones` | Time-in-zone breakdown (Garmin zones 1–5, seconds + pct) |
-| `get-activity-details` | **Time-series metrics only** (HR, cadence, stride, GCT, power sampled over time) — does NOT include gear |
-| `get-activity-weather` | Weather conditions during the activity |
-| `get-activity-polyline` | Full-resolution GPS track |
-| `download-fit` | Raw `.fit` file download |
+```bash
+GARMIN_CLI=/home/john/projects/garmin-cli.workspace/garmin-cli/.venv/bin/garmin-cli
+GARMIN_ENV=/home/john/projects/alpharunner.workspace/env-profiles/local.env
+GARMIN_TOKENS=/home/john/.garmin-cli/tokens
+"$GARMIN_CLI" --env-file "$GARMIN_ENV" --tokenstore "$GARMIN_TOKENS" auth check
+"$GARMIN_CLI" --env-file "$GARMIN_ENV" --tokenstore "$GARMIN_TOKENS" stage --activity <numeric-id> --out <private-stage-path>
+```
 
-### Gear / shoe data — gap in our server
+The staging contract remains `{activities:[{listItem,detail,splits,hrZones}]}`. Original activity FIT files supply the missing lap/zone routes; source-labeled power must not be silently substituted. See [the staging guide](scripts/garmin/README.md) and [the cutover checklist](docs/garmin-personal-api-cutover.md).
 
-**Our server has no gear endpoint.** The eddmann reference server provides two gear tools our server lacks:
+Activity discovery uses date-filtered completed-activity search. Live calendar/adaptive recommendations, training readiness and unsupported workout writes are not available through this backend; report missing context explicitly rather than fabricating it or reviving MCP.
 
-- `query-gear` — lists all gear (shoes etc.) registered in Garmin Connect with usage stats
-- `get-activity-details` (eddmann version) — comprehensive summary including gear tagged to that activity
+### Shoe identity and canonical storage
 
-To populate the `shoes` table with real data, either:
-1. Add a gear endpoint to `~/www/garminme/garmin-mcp` mirroring eddmann's `query-gear`
-2. Or enter shoes manually in `import-seed.json` and link them to runs via `shoe_id`
+Shoe assignment remains explicit and user-authorized. Live AlphaRunner shoe rows are canonical; the seed only bootstraps missing rows. Rerunning `db:import-seed` preserves existing shoe specs, mileage, status and notes. Accepted researched corrections update the live row and synchronize the seed snapshot for disaster recovery. Do not infer worn shoes from Garmin or overwrite existing live records through routine seeding.
 
-Until gear is available programmatically, shoe metadata is bootstrapped from `import-seed.json`. After a shoe exists, the live AlphaRunner database is canonical; rerunning `db:import-seed` preserves existing shoe specs, mileage, status, and notes. When a researched spec change is accepted, update the live row and synchronize the seed snapshot for clean disaster recovery.
-
-### Authentication
-
-Garmin uses OAuth + MFA. Tokens are cached at `~/.garmin-connect-mcp/session.json`. When a 401 appears, re-run the login flow inside the garmin-mcp server's own Playwright browser — Cloudflare blocks the Garmin SSO page for any browser with automation flags (including Chrome DevTools MCP).
-
-### Seeding workflow
-
-1. Pull recent activity IDs from `list-activities`
-2. For each activity fetch `get-activity`, `get-activity-splits`, `get-activity-hr-zones`
-3. Add entries to `import-seed.json` under `runs`, `run_laps`, `hr_zone_distributions`
-4. IDs can be short strings (e.g. `garmin-run-12345`) — `import-seed.ts` maps them to stable UUIDs via `stableUuid()`
-5. Run `pnpm db:import-seed` with `DATABASE_URL` from `env-profiles/local.env`. Existing live shoe rows are preserved; only missing shoes bootstrap from the seed.
+Routine imports use the Sportscoach task/confirmation workflow and verified transactional read-back. Authentication or staging alone does not authorize database writes. See the canonical `skills/sportscoach-decisions/SKILL.md`.
 
 ## Next build steps
 

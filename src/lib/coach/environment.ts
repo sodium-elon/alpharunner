@@ -23,7 +23,8 @@ async function envFile(path: string) {
 // The token stays in its existing environment/secrets files. Diagnostics never
 // include credential values, connection strings or private provider responses.
 export async function loadCoachEnvironment(options: EnvironmentOptions = {}) {
-  const project = await envFile(options.projectEnv ?? fileURLToPath(new URL('../../../../env-profiles/local.env', import.meta.url)))
+  const projectEnv = options.projectEnv ?? fileURLToPath(new URL('../../../../env-profiles/local.env', import.meta.url))
+  const project = await envFile(projectEnv)
   const env = { ...project, ...(options.processEnv ?? process.env) }
   const shared = await envFile(options.sharedEnv ?? env.COACH_SHARED_ENV ?? join(homedir(), '.hermes/secrets/typesafe.env'))
   const apiKey = env.TYPESAFE_API_KEY || shared.TYPESAFE_API_KEY || undefined
@@ -33,6 +34,7 @@ export async function loadCoachEnvironment(options: EnvironmentOptions = {}) {
     apiKey, openRouterApiKey, databaseUrl,
     garminExecutable: env.COACH_GARMIN_CLI || join(homedir(), 'projects/garmin-cli.workspace/garmin-cli/.venv/bin/garmin-cli'),
     garminTokenStore: env.COACH_GARMIN_TOKENS || join(homedir(), '.garmin-cli/tokens'),
+    garminEnvFile: env.COACH_GARMIN_ENV || projectEnv,
     stateRoot: env.COACH_STATE_DIR || join(homedir(), '.hermes/profiles/sportscoach/state/coach-tasks'),
     diagnostics: { database: !!databaseUrl, typesafe: !!apiKey, openrouter: !!openRouterApiKey },
   }

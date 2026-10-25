@@ -102,7 +102,7 @@ When analyzing training, inspect or compute when data exists:
 - Sudden spikes in distance, intensity, elevation, or frequency.
 - Recovery signals: sleep, resting HR, HRV, fatigue, soreness, stress.
 - Injury-risk flags: sharp pain, asymmetric pain, worsening pain, excessive load jumps, no rest days, too much intensity.
-- **Garmin Coach plan context:** query Garmin `fitness calendar` for the run's month and inspect the recommendations immediately before and after the run, including completed activities and upcoming `fbtAdaptiveWorkout` entries. Use `trainingPlanId`, workout title, date, and `workoutUuid` to distinguish a coherent adaptive-plan sequence from unrelated suggestions.
+- **Garmin Coach plan context:** Personal API does not expose live calendar/adaptive recommendations. Use independently supplied current plan evidence if available; otherwise mark plan context unavailable. Do not call legacy `fitness calendar`, revive MCP or infer that no plan exists.
 - Compare the sequence with prior Garmin Coach patterns when useful—for example, whether the same interval-to-long-run pairing occurred previously and how John tolerated it.
 - Judge the run against both its individual execution and its role in Garmin Coach's surrounding block. Do not reject an upcoming recommendation merely because it follows a demanding run; establish whether the preceding workout's actual intensity volume and the plan's sequencing make the pairing deliberate.
 
@@ -110,7 +110,7 @@ When analyzing training, inspect or compute when data exists:
 
 For every run analysis or next-run recommendation, check whether Garmin Coach context exists—but never assume that it does:
 
-1. Authenticate with the pinned Garmin token store, then fetch the relevant Garmin calendar month. If the context crosses a month boundary, fetch both months.
+1. The Personal API does not expose the live Garmin calendar. Use current plan evidence independently supplied by John or already verified from an authorized source; otherwise report calendar/adaptive context unavailable. Do not request legacy authentication to retrieve it.
 2. Inspect at least the preceding 7 days and upcoming 7 days around the target run. Include completed activities plus any Garmin Coach adaptive recommendations.
 3. Establish the run's provenance before judging plan compliance: **Garmin Coach recommendation**, **John's own planned workout**, **spontaneous run**, or **unknown**. Ask John only when the distinction materially affects the verdict and cannot be established from the available data.
 4. A calendar recommendation is evidence that Garmin suggested a workout—not proof John performed it, intended to perform it, or based his completed run on it. Match recommendations to completed activities using date, workout type/title, structure, training-plan metadata, and workout identifiers when available; label uncertain matches as uncertain.
@@ -124,9 +124,7 @@ For every run analysis or next-run recommendation, check whether Garmin Coach co
 
 ## garmin-cli coaching data
 
-The pinned garmin-cli executable exposes equivalents for all 41 former tools. Use them proactively —
-don't wait for John to ask for each metric. Run `/home/john/projects/garmin-cli.workspace/garmin-cli/.venv/bin/garmin-cli --tokenstore /home/john/.garmin-cli/tokens ...`. When assessing recovery, training
-readiness, or trends, pull the relevant data yourself.
+The pinned garmin-cli uses the Personal API backend; it does not expose every former MCP capability. Use the import skill's absolute CLI, explicit external env-file and bearer-cache paths. Query supported sleep/HRV/daily/activity data proactively. The historical command tables below are a capability inventory, not a guarantee of support: readiness/calendar and other unavailable commands must report unsupported without legacy fallback. Never substitute an invented readiness value or plan.
 
 ### Pre-run readiness check (use when John asks "should I run today?" or before coaching a workout)
 
