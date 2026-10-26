@@ -1,6 +1,50 @@
-import { readFile } from 'node:fs/promises'
+import { readFile, readdir } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { runInNewContext } from 'node:vm'
 import { expect, it, vi } from 'vitest'
+
+it('ships a current-only coaching reference graph with no executable retired advice', async () => {
+  const root = fileURLToPath(new URL('../../../../skills/', import.meta.url))
+  for (const name of ['running-coaching', 'alpharunner-garmin-run-import', 'sportscoach-decisions']) {
+    const base = resolve(root, name)
+    expect(existsSync(resolve(base, 'references/legacy-workflow.md')), name).toBe(false)
+    const files = ['SKILL.md', ...(await readdir(resolve(base, 'references'))).map(p => `references/${p}`)]
+    for (const file of files) {
+      const path = resolve(base, file)
+      const text = await readFile(path, 'utf8')
+      expect(text, path).not.toMatch(/legacy-workflow\.md|fitness (?:calendar|training-readiness|power-zones)|workouts (?:create|schedule)|--latest-running|fresh-code retry|OTP failure|scripts\/shoe-choice\.ts|tsx -e|psql .*?-c/)
+      for (const line of text.split('\n').filter(line => /["$]GARMIN_CLI.* --tokenstore/.test(line))) {
+        expect(line, path).toContain('--env-file "$GARMIN_ENV"')
+      }
+      for (const match of text.matchAll(/\]\(([^)#]+\.md)(?:#[^)]*)?\)/g)) {
+        expect(existsSync(resolve(dirname(path), match[1])), `${path} -> ${match[1]}`).toBe(true)
+      }
+    }
+  }
+  const coaching = await readFile(resolve(root, 'running-coaching/SKILL.md'), 'utf8')
+  expect(coaching).toContain('references/coaching-evidence.md')
+  const evidence = await readFile(resolve(root, 'running-coaching/references/coaching-evidence.md'), 'utf8')
+  for (const phrase of ['Calendar/adaptive recommendations and training readiness are unavailable', 'completed-workout metadata', 'directWorkoutComplianceScore', '7/14/28', 'conditional', '180 spm', 'clinician', 'prescribed', 'Stryd']) {
+    expect(evidence).toContain(phrase)
+  }
+  const importer = await readFile(resolve(root, 'alpharunner-garmin-run-import/SKILL.md'), 'utf8')
+  expect(importer).toContain('references/import-evidence.md')
+  const identity = await readFile(resolve(root, 'alpharunner-garmin-run-import/references/import-evidence.md'), 'utf8')
+  for (const phrase of ['receipt timestamp', 'numeric Garmin', 'matched', 'authorization', 'verified:true', 'not yet stored', 'import-seed.json']) {
+    expect(identity).toContain(phrase)
+  }
+})
+
+it('does not ship superseded standalone analysis or SQL-write helpers', () => {
+  for (const path of [
+    'running-coaching/scripts/analyze-staged-run.py',
+    'alpharunner-garmin-run-import/scripts/verify-and-note-garmin-import.mjs',
+  ]) {
+    expect(existsSync(new URL(`../../../../skills/${path}`, import.meta.url)), path).toBe(false)
+  }
+})
 
 it('uses Personal API-only authentication guidance without legacy login recovery', async () => {
   const root = new URL('../../../../', import.meta.url)

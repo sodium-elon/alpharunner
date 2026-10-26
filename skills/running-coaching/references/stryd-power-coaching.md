@@ -6,7 +6,7 @@ Use this reference whenever Stryd/Connect IQ telemetry is present, John asks abo
 
 Never treat all fields named "power" as interchangeable.
 
-1. Pull fresh `activities details <activity-id>` telemetry.
+1. Use the existing `coach analyze-run` evidence for the exact activity/date. For a genuinely missing descriptor/coverage question, follow [current retrieval configuration](../../alpharunner-garmin-run-import/references/cli-and-db-query-pitfalls.md); every fresh Garmin invocation must receive the protected env-file explicitly. Do not create a scratch enrichment script or bypass task persistence.
 2. Inventory `metricDescriptors` and map every sample through `metricsIndex`; array ordering can change on every response.
 3. Identify the Connect IQ app/provider and each developer field. For Stryd Zones app UUID `18fb2cf0-1a4b-430d-ad66-988c847421f4`, verified Garmin activity `24048385825` establishes that `developerFieldNumber: 0` was Stryd watts and field 3 was not watts. This is a validation example, not permission to hardcode blindly: remap and sanity-check every fresh payload.
 4. Validate the candidate stream before use:
@@ -61,11 +61,11 @@ Do not stop after failing to find CP inside an activity's Connect IQ metric desc
 
 1. Check the verified current Stryd CP source available to the session (Stryd platform/export, previously source-labeled AlphaRunner coaching record, or John's explicit statement).
 2. Check recent source-labeled history for the last verified Stryd CP and its effective date. A bare historical watt value or unlabeled `avg_power_w` is not CP evidence.
-3. Pull fresh running power-zone configuration as corroboration. Garmin-native floors alone do not become Stryd CP; however, if the floors reproduce Stryd's official 65/80/90/100/115% boundaries around the previously verified CP and John explicitly confirms his Stryd CP has not changed, record provenance as **user-confirmed unchanged Stryd CP, corroborated by synchronized running-zone floors**.
+3. Use independently supplied dated running-zone configuration as corroboration when available; Personal API cannot retrieve live zone settings. Garmin-native floors alone do not become Stryd CP. If supplied floors reproduce Stryd's official 65/80/90/100/115% boundaries around the previously verified CP and John explicitly confirms his Stryd CP has not changed, record provenance as **user-confirmed unchanged Stryd CP, corroborated by supplied synchronized running-zone floors**, with their date. Do not call unsupported configuration commands or revive another transport.
 4. Verify the boundary arithmetic with a calculation tool. Do not infer the CP from one workout, reverse-engineer it from noisy rounded floors without prior provenance, or silently relabel Garmin FTP as Stryd CP.
 5. Only after these checks fail should the report say `CP unavailable`.
 
-When John says “check CP again” or “nothing changed from usual Stryd runs,” rerun this ladder and correct any stale coaching note. Do not defend the earlier gap. State the correction plainly and query the updated note back before reporting completion.
+When John says “check CP again” or “nothing changed from usual Stryd runs,” rerun this evidence ladder and state any correction plainly. Read-only analysis does not authorize rewriting a stored note: use an explicitly authorized supported repair workflow, or report the persistence limitation. Never silently bypass the adapter with SQL.
 
 ## 3. Official five-zone model
 

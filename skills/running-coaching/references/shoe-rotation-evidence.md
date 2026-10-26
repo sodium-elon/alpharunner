@@ -36,7 +36,7 @@ GROUP BY s.id
 ORDER BY (s.status = 'active') DESC, s.brand, s.model, s.variant;
 ```
 
-If `stored_km` differs from `authoritative_run_km`, state the mismatch and reconcile it before relying on mileage.
+These SQL shapes describe evidence for scoped maintenance, not the routine workflow. Use the existing inventory/recommendation/run-summary handlers first; do not create scratch queries. If stored and authoritative mileage differ, report the mismatch; the authorized task adapter owns reconciliation, not an unsolicited read-only-answer UPDATE.
 
 ## Substantive observations query
 
@@ -82,7 +82,7 @@ Run count alone does not upgrade evidence. Five unmatched workouts remain confou
 2. Load researched construction context.
 3. Say explicitly: **no personal evidence yet**.
 4. Recommend an onboarding run appropriate to the expected role, not a maximal test.
-5. After the run, capture a substantive `shoe_observations` row: comfort (1–5), stability, fit/hotspots, perceived cushioning/response, mechanics, during-run symptoms, and next-day calf/Achilles/foot response.
+5. For an authorized import, persist substantive observations through the existing adapter: actual reported comfort (1–5), stability, fit/hotspots, cushioning/response, mechanics and during/next-day calf/Achilles/foot response. Missing reports stay missing. Read-only shoe advice does not authorize observation writes.
 6. Do not assign a durable personal role after one run.
 
 ## Rotation/dossier drift check
@@ -90,9 +90,9 @@ Run count alone does not upgrade evidence. Five unmatched workouts remain confou
 Whenever a shoe is newly added or a full-rotation question is asked:
 
 - Compare every active AlphaRunner shoe against the headings in `john-shoe-rotation.md`.
-- If an active shoe is missing, research and add it before giving a complete rotation answer.
+- If an active shoe is missing, research it before claiming a complete construction verdict; propose separately scoped source maintenance rather than silently editing installed skills.
 - If the dossier contains a shoe no longer active, retain construction history but query status and label it correctly.
-- If AlphaRunner spec fields disagree with better current evidence, treat the live DB as canonical after the shoe exists. Update the live fields with provenance in `shoes.notes`, then synchronize the matching shoe metadata in `/home/john/projects/alpharunner.workspace/import-seed.json` for disaster recovery. `db:import-seed` preserves existing live shoe rows and only bootstraps missing shoes; never restore destructive shoe-upsert behavior.
+- If AlphaRunner spec fields disagree with better evidence, report the discrepancy and propose separately authorized metadata maintenance. Existing live mutable rows outrank bootstrap seeds; authorized corrections need provenance and a synchronized seed for disaster recovery. Never rerun a seed import as a shoe/run correction or routine coaching step.
 
 ## Completion criteria
 

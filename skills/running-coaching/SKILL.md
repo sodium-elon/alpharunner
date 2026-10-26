@@ -6,7 +6,7 @@ version: 2.0.0
 
 # Running coaching — operational entry point
 
-Garmin transport is the pinned CLI's Personal API-only backend. Use the import skill's explicit external env-file configuration; do not use browser/password/email-MFA recovery, Garmin MCP or session-prewarming jobs. Calendar/adaptive recommendations and training readiness are unavailable through this backend: report missing context, not "no active plan" or zero readiness. Historical reference commands for unavailable capabilities are not instructions to revive the old transport. Use available sleep/HRV/daily stats, actual completed telemetry, recent stored workload and current user symptoms; recommendations remain conditional where plan/recovery evidence is missing.
+Garmin transport is the pinned CLI's Personal API-only backend. Use the import skill's explicit external env-file configuration; do not use browser/password/email-MFA recovery, Garmin MCP or session-prewarming jobs. Calendar/adaptive recommendations and training readiness are unavailable through this backend: report missing context, not "no active plan" or zero readiness. Use available sleep/HRV/daily stats, actual completed telemetry and workout metadata, recent stored workload and current user symptoms; recommendations remain conditional where plan/recovery evidence is missing.
 
 For imports and full analyses, read /home/john/projects/alpharunner.workspace/alpharunner/skills/sportscoach-decisions/SKILL.md for the executable workflow. For simple factual questions, the Quick factual run questions section below is sufficient: use its handler directly instead of loading the full import workflow. The main Sportscoach executes routine imports directly, never via generic `delegate_task`; preserve exact request date/shoe and real message provenance, durable approval, verified read-back, bounded recovery and a final reply.
 
@@ -49,8 +49,10 @@ The existing `coach analyze-run` returns `analysisBrief` alongside features and
 raw judgments. Read it first: code compacts recurring Garmin evidence and recent
 load; one Jev batch prioritizes investigation and suggests bounded sources and
 prior comparators. The main Sportscoach still reasons and writes the analysis.
-Follow the brief's source links and material gaps before deeper investigation;
+Follow the brief's current source links and material gaps before deeper investigation;
 do not repeat schema discovery or serial classifications of the same evidence.
+If a brief names a removed workflow reference, use the current source map below;
+do not reconstruct retired instructions or treat a missing file as missing expertise.
 
 Comparator candidates have their own earlier dates and IDs: they are not additional runs
 on the target date. Exclude same-day/future candidates; a split harmless retrieval
@@ -67,7 +69,7 @@ or finished coaching, and it never imports or rewrites a run.
 ## Domain evidence is mandatory before writing analyses
 
 Do not stop at CLI feature extraction or Jev labels. Read the applicable sections
-of `references/legacy-workflow.md`, plus `references/john-shoe-rotation.md`,
+of [coaching evidence](references/coaching-evidence.md), plus `references/john-shoe-rotation.md`,
 `references/shoe-rotation-evidence.md`, and the relevant shoe-specific/calibration
 references. These contain the coaching expertise; they are not optional extras.
 
@@ -81,8 +83,9 @@ references. These contain the coaching expertise; they are not optional extras.
   controlled economy/fitness claims. Name genuine progress supported by the
   history instead of burying it under disclaimers; incompatible conditions
   qualify a comparison, not erase all useful coaching context.
-- Use the target-date Garmin adaptive recommendation and surrounding +-7-day
-  block. Match completed structure/metadata/compliance separately from prescribed
+- Use independently supplied target-date prescriptions and surrounding +-7-day
+  context when available; Personal API cannot fetch the adaptive calendar.
+  Match completed structure/metadata/compliance separately from prescribed
   targets; unavailable exact targets stay unavailable. A long run is not hard
   merely because it is long or Garmin assigns high training effect. Classify
   actual execution using validated sources, then distinguish plan fit from
@@ -140,6 +143,11 @@ recommendations, authorization prose or validation reports into that field.
 Preserve genuine user text verbatim. Archive a generated report before repairing
 legacy contamination, and leave unrelated original observations unchanged.
 
-Read the relevant sections of /home/john/projects/alpharunner.workspace/alpharunner/skills/running-coaching/references/legacy-workflow.md using bounded read_file offsets. Its relative reference paths are relative to this running-coaching skill directory. Old ad-hoc shell recipes there are legacy examples, not the current routine workflow.
+## Current reference map
+
+- Always for full analysis: [coaching evidence](references/coaching-evidence.md), [single-run interpretation](references/garmin-single-run-analysis.md), [rotation construction](references/john-shoe-rotation.md), [personal shoe evidence](references/shoe-rotation-evidence.md).
+- Power/structure: [Stryd doctrine and CP](references/stryd-power-coaching.md), [Garmin–Stryd comparison](references/john-garmin-stryd-comparison.md), [sprint recognition](references/sprint-session-recognition.md), [threshold charts](references/garmin-lactate-threshold-trend.md).
+- Branch-specific: [tempo shoe choice](references/tempo-shoe-comparison.md), [daily shoe choice](references/jev-choice-shoe-guide.md), [notable-run ranking](references/best-run-ranking.md), [draft repairs](references/coaching-repair-drafts.md).
+- Pair dossiers: [Qiaodan Leili 2.0](references/qiaodan-leili-2.md), [Dynafish Xiaonian](references/dynafish-xiaonian.md). Static historical examples are not live records or current calibration.
 
 Keep scientific nuance and medical safety; do not use Jev confidence as calibrated accuracy or infer current pain from a shoe warning. Explain limitations and source provenance. Do not perform unsolicited speaker tests, extend channel-specific voice reply deadlines, restart gateways, merge or deploy.

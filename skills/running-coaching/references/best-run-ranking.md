@@ -1,49 +1,14 @@
-# Best / notable-run ranking — working queries
+# Notable-run ranking: evidence before a winner
 
-Source: whole-history "best run" review (76 runs, Apr–Sep). Proven against AlphaRunner's real schema.
+Use existing `coach --help` and the repository's `best-run` shortlister for supported ranking, not a scratch SQL/Jev harness. Rankings shortlist evidence; they do not prove physiology. Query the exact shortlisted run through `coach run-summary` and use `coach analyze-run` only when a full interpretation is needed. Do not reanalyze every candidate merely to rank.
 
-## One-shot ranking pull (all runs + lap evidence)
+## Comparability gates
 
-JOIN`coaching_notes` for `effort_label` (labels live there, not on `runs`); `runs.notes` is felt-experience text and is frequently empty. Normalize `date` — under `postgres` it returns a JS `Date`, so coerce with `typeof r.date === 'string' ? r.date.slice(0,10) : r.date.toISOString().slice(0,10)`.
+- Establish the question: fastest defaults to lowest whole-run average pace in the resolved window, not fastest split. Resolve last week as rolling seven days unless a calendar week or explicit range was requested; state dates and coverage.
+- Verify current identities, actual shoe assignment, duration/distance ruler, workout mission, source-labeled watts and lap support. A sustained lap band supports output durability; a high summary average alone can hide a spike.
+- Power provenance is per activity, not a fixed late-August cutoff. Earlier validated Stryd and later Garmin fallback runs exist. Bare avg_power_w or a date does not prove an ecosystem. Keep source-native rankings separate; do not discount/convert Garmin values into Stryd records. See [empirical source comparison](john-garmin-stryd-comparison.md).
+- Low HR at stable source-correct output and coherent late mechanics can support a durability finding under matched conditions. Lowest GCT/vertical ratio is not automatically best economy or the runner's ceiling. Pace, surface, heat/cooling, recovery and intent confound raw rankings.
+- Treadmill summary/lap scale disagreement blocks a definitive pace PB unless the selected ruler's provenance is established. State both scales and favor defensible execution observations, not a manufactured record.
+- Jev can judge telemetry/intent through the existing analyzer even when no user note exists. Note classification is a separate original-user-only branch; do not fabricate notes to force a score or treat generated coaching as enjoyment/pain testimony.
 
-```ts
-pnpm dotenv -e ../env-profiles/local.env -- tsx -e "
-import postgres from 'postgres';
-const sql = postgres(process.env.DATABASE_URL!);
-(async () => {
-  const rows = await sql\`SELECT r.id, r.date, r.distance_km, r.avg_pace_sec_per_km as pace,
-    r.avg_hr, r.avg_power_w, r.avg_cadence, r.avg_ground_contact_ms as gct,
-    r.vertical_ratio_pct as vr, r.notes, coalesce(cn.effort_label,'') as effort,
-    r.garmin_activity_id, s.brand, s.model, coalesce(s.variant,'') as variant
-  FROM alpharunner.runs r
-  LEFT JOIN alpharunner.shoes s ON s.id = r.shoe_id
-  LEFT JOIN alpharunner.coaching_notes cn ON cn.run_id = r.id
-  ORDER BY r.date\`;
-  for (const r of rows) {
-    const d = typeof r.date === 'string' ? r.date.slice(0,10) : r.date.toISOString().slice(0,10);
-    const pace = r.pace ? \`\${Math.floor(r.pace/60)}:\${String(Math.round(r.pace%60)).padStart(2,'0')}\` : '';
-    console.log(JSON.stringify({date:d, model:(r.model||'')+' '+(r.variant||''), dist:r.distance_km,
-      pace, hr:r.avg_hr, W:r.avg_power_w, cad:r.avg_cadence, gct:r.gct, vr:r.vr,
-      effort:r.effort, hasNote: !!(r.notes&&r.notes.trim()), id:r.garmin_activity_id}));
-  }
-  await sql.end();
-})()
-"
-```
-
-## Lap-band verification (flagship run)
-
-Prove a headline `avg_power_w` is sustained (not a single-spike artifact) by checking every lap. `run_laps` uses `lap_index` (NOT `lap_number`) and JOINs on `run_id` (NOT `garmin_activity_id`). A tight watt band across all laps — e.g. 407/421/422/412/419/422/417/420 — is the evidence of a real ceiling.
-
-```ts
-const laps = await sql\`SELECT lap_index, split_distance_m, pace_sec_km, avg_hr, avg_power_w,
-  avg_ground_contact_ms, avg_cadence
-  FROM alpharunner.run_laps WHERE run_id = \${r.id} ORDER BY lap_index\`;
-```
-
-## Interpretation gate
-
-- **Power era:** runs carrying a Stryd provenance note ("Power source: validated Stryd Connect IQ...") are Stryd-calibrated; earlier runs are Garmin `directPower` (~27–36% high). Rank within one ecosystem or discount before cross-era claims. Do not mix.
-- **Mechanics:** lowest GCT, lowest vertical ratio, and low HR at high power together identify the ceiling — power alone can mislead.
-- **Jev:** token-charged and note-dependent. Score only the shortlisted note-bearing contenders; a telemetry-strong run with empty `notes` cannot be Jev-scored and must be crowned on telemetry (state that plainly).
-- **Treadmill scale:** calibrated summary distance vs raw lap-distance sum may disagree (e.g. laps ~7.3 km @ ~3:50 vs summary 6.5 km @ 4:37). State both, decide on effort, never mix scales.
+Report the criterion, candidate date/ID, source and evidence tier, material limitations and one repeatable next action. If evidence cannot identify a unique best run, say so. A deterministic score is not a controlled fitness or shoe-economy test.

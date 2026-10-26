@@ -1,60 +1,10 @@
-# Historic Bulk Import: Pagination and Detection
+# Historic discovery and bulk authorization
 
-This reference documents the `garmin-cli` pagination pattern for fetching all Garmin activities and detecting which runs need import.
+Bulk imports are separately scoped work, not an expansion of a single-run task. Use [the current retrieval contract](cli-and-db-query-pitfalls.md) for protected env-file propagation on every CLI invocation and [import evidence](import-evidence.md) for identity/approval/readback.
 
-## Garmin activity pagination
-
-Fetch pages of 100 until the CLI returns an empty JSON array:
-
-```bash
-GARMIN_CLI=/home/john/projects/garmin-cli.workspace/garmin-cli/.venv/bin/garmin-cli
-GARMIN_TOKENS=/home/john/.garmin-cli/tokens
-
-start=0
-while :; do
-  page="$($GARMIN_CLI --tokenstore "$GARMIN_TOKENS" activities list --limit 100 --start "$start")" || exit $?
-  [ "$page" = '[]' ] && break
-  printf '%s\n' "$page"
-  start=$((start + 100))
-done
-```
-
-For programmatic aggregation, parse each stdout value as JSON and append its array items. Never concatenate arrays as raw text. Returned activities are newest-first.
-
-## Filtering running activities
-
-Keep activities where:
-
-- `activityType.typeKey` is `running` or `treadmill_running`; or
-- `activityType.parentTypeId === 1`.
-
-Filter out cycling, walking, strength training, and other sports.
-
-## Detecting import gaps
-
-Query existing Garmin IDs:
-
-```sql
-SELECT garmin_activity_id
-FROM alpharunner.runs
-WHERE garmin_activity_id IS NOT NULL;
-```
-
-Convert both Garmin and database IDs to strings, then retain running activities whose `activityId` is absent from the database set. Report the count and minimum/maximum `startTimeLocal` before a bulk import.
-
-## Scale estimation
-
-Staging fetches summary/detail/splits/HR-zone data. Large imports can make hundreds of authenticated requests and take many minutes. Report the estimated run count and request scale, then obtain confirmation before proceeding.
-
-## Data flow
-
-1. Paginate and aggregate all activities through `garmin-cli activities list`.
-2. Filter to running activities.
-3. Check existing `garmin_activity_id` values in AlphaRunner.
-4. Identify the import gap.
-5. For each approved numeric ID, run `garmin-cli stage --activity <id>`; explicit-ID lookup is paginated internally.
-6. Preserve `listItem`, `detail`, `splits`, and `hrZones` in the staging envelope.
-7. Resolve shoe assignment for each run.
-8. Run `pnpm db:sync-garmin` against the staged data.
-
-Even for bulk import, shoe assignment is required per run unless John explicitly authorizes `--no-shoe`.
+1. Bound the requested start/end dates and maximum pages before discovery. Request completed activities with explicit date filters, start offset and limit; inspect actual API errors instead of treating them as an empty page.
+2. Parse each result as JSON; deduplicate numeric activity IDs across pages. Newest-first ordering is not proof of complete history. End only on the provider's actual exhaustion result; repeated pages or the configured bound mean incomplete discovery, not a unique candidate or complete import gap.
+3. Filter actual running/treadmill sport metadata; do not count walking, strength or cycling as competing runs. Verify each selected numeric ID and local date against its activity detail.
+4. Compare actual stored activity IDs and dates. Report missing-run count/date range and estimated work without inventing request counts or elapsed time guarantees. Do not merge activities into import-seed.json or run its importer to log them.
+5. Obtain authorization for the actual batch and explicit shoe identity per run. If the current task tooling cannot express that scope (including an explicitly requested no-shoe case), report the limitation for separately scoped maintenance; never bypass it with direct SQL or an unreviewed script.
+6. Prepare/authorize/analyze/import and verify each approved exact identity through the existing task workflow. Matching stored runs are verified, not overwritten. Stop/reconcile failed writes before retries. Deliver coaching and exact retained/cleaned artifact status, not merely a fetched activity count.

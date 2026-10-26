@@ -100,7 +100,7 @@ it.each(['failure', 'missing'])('preserves descriptive analysis when optional re
 it('always retains the domain source floor and exact worn-shoe reference independently of optional rankings', async () => {
   const current = { runId: 'current', activityId: '123', date: '2026-10-03', shoeId: 'worn', brand: 'Qiaodan', model: 'Leili 2.0' }
   const { result, runner } = await analyze({ openRepository: () => ({ sql: { unsafe: vi.fn(async (q: string) => q.includes('r.date=$1') ? [current] : []) }, close: vi.fn(async () => {}) }) })
-  expect(result.analysisBrief.mandatorySources.map(s => s.path.split('/').at(-1))).toEqual(expect.arrayContaining(['legacy-workflow.md', 'john-shoe-rotation.md', 'shoe-rotation-evidence.md', 'garmin-single-run-analysis.md', 'qiaodan-leili-2.md']))
+  expect(result.analysisBrief.mandatorySources.map(s => s.path.split('/').at(-1))).toEqual(expect.arrayContaining(['coaching-evidence.md', 'john-shoe-rotation.md', 'shoe-rotation-evidence.md', 'garmin-single-run-analysis.md', 'qiaodan-leili-2.md']))
   expect(result.analysisBrief.mandatorySources.every(s => s.status === 'available')).toBe(true)
   expect(result.analysisBrief.optionalSources).toEqual([])
   expect(runner.mock.calls[0][0].questions).toHaveProperty('brief_ref_sprint-session-recognition')

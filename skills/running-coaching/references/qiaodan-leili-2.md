@@ -94,7 +94,7 @@ Nominal drop, rocker and foam interact with loading and runner mechanics. A 7 mm
 
 ## Onboarding and future evaluation
 
-1. First check current Achilles/calf/foot symptoms. If at usual settled baseline and already tolerating running, use a short 20–30 minute genuinely easy trial on a familiar flat surface. This is a shoe-tolerance protocol, not an order to add training or override Garmin Coach; check live plan/readiness before selecting the actual day.
+1. First check current Achilles/calf/foot symptoms. If at usual settled baseline and already tolerating running, use a short 20–30 minute genuinely easy trial on a familiar flat surface. This is a shoe-tolerance protocol, not an order to add training or override Garmin Coach. Live calendar/readiness are unavailable through Personal API: use independently supplied current prescriptions, available overnight recovery and symptoms; keep day selection conditional when evidence is missing.
 2. No first-run long test, hills or maximal speed. Stop for sharp or escalating pain or altered gait. A softer shoe does not authorize more load.
 3. Record comfort on the current 1–5 scale, fit/hotspots, heel lockdown, lateral stability, cushioning/response and any asymmetry. Record during-run pain and the next-morning Achilles/calf/foot response; missing symptoms are not confirmed absence.
 4. Increase exposure only after repeated tolerable responses. One run is anecdotal, not a permanent promotion to long-run duty.
@@ -103,4 +103,4 @@ Nominal drop, rocker and foam interact with loading and runner mechanics. A 7 mm
 
 ## Maintenance
 
-Update uncertain specifications when a pair label or stronger technical evidence becomes available; preserve provenance in shoes.notes and synchronize import-seed.json. Keep full rotation summary in john-shoe-rotation.md synchronized. Never fabricate comfort scores, purchase dates, prior mileage, or symptom resolution.
+Propose specification corrections when stronger pair-specific evidence appears. Database/seed/dossier maintenance requires separate authorization; a coaching question does not grant metadata-write, source-edit or deployment permission. Preserve provenance and current-source ownership when that maintenance is authorized. Never fabricate comfort scores, purchase dates, prior mileage, or symptom resolution.

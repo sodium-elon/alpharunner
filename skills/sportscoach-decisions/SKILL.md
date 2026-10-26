@@ -96,7 +96,7 @@ The main Sportscoach handles routine import/analyze requests directly through th
 2. Use `prepare` to pin activity/date/shoe in durable task state; immediately read `task-show` and compare scope to the real request. If the initial request clearly authorizes that exact scope, persist its genuine message provenance using `task-confirm` within the existing pending window. Before claiming the Telegram event ID is unavailable, inspect `HERMES_SESSION_MESSAGE_ID` in the live tool environment. `task-confirm` requires `--answer yes` as well as the real `--source-message-id` and exact scope. User authorization and an unrecorded internal authorization receipt are different: describe an internal bookkeeping failure accurately, not as missing user permission. Otherwise ask only for missing scope/authorization. Never invent an ID or refresh an expired approval automatically.
 3. Confirm scope before slower `analyze-run` work. The main Sportscoach reviews evidence and writes actual coaching JSON, then invokes `import-task` for that confirmed task. On interruption, restore with `task-show`; do not start a replacement import blindly.
 4. Read back the task after execution and require the import's `verified:true` and exact activity/date/shoe/counts. The adapter's transactional database read-back is the write verification; a task status alone is not proof. Give a final reply naming the date, shoe, verified imported/already-imported outcome and useful coaching, or the actual blocker. Never end at an acknowledgement or silently omit completion.
-5. On failure, inspect task state once. For Garmin failures, use the sanitized exit/signal/error-code diagnostic and one read-only auth check with the configured absolute executable/token store; never print stdout/profile, tokens, passwords or environment values. ENOENT/EACCES/timeouts are not evidence of expired auth. Only confirmed authentication failures may load `alpharunner-garmin-run-import` with `file_path="references/garmin-auth-recovery-recipe.md"`: one bounded CLI-owned login, one fresh-code retry only for the documented OTP failure, then auth check and authenticated read. No recovery login during read-only diagnostic tasks. If recovery fails, stop and report; do not loop, reimport, write ad-hoc SQL, or deploy/restart anything. A running/failed write needs reconciliation before any retry.
+5. On failure, inspect task state once. For Garmin failures, use the sanitized exit/signal/error-code diagnostic and one read-only auth check with the configured absolute executable, protected external env-file and token store; never print stdout/profile, tokens, passwords or environment values. ENOENT/EACCES/timeouts are not evidence of expired auth. Confirmed authentication failures use [the Personal API procedure](../alpharunner-garmin-run-import/references/garmin-auth-recovery-recipe.md): the CLI owns bounded on-demand bearer acquisition/renewal. No browser/password/email OTP, MCP or scheduled session refresh is a fallback. No forced token acquisition during read-only diagnostic tasks. If recovery fails, stop and report; do not loop, reimport, write ad-hoc SQL, or deploy/restart anything. A running/failed write needs reconciliation before any retry.
 
 ## Failed-import reconciliation
 
@@ -132,14 +132,21 @@ pnpm --dir /home/john/projects/alpharunner.workspace/alpharunner -s coach analyz
 
 Add any original-user intent/note to the coach command before the pipe. Detailed
 unprojected output remains available when a material gap requires it; do not
-repeat Jev just to obtain a prettier payload. Runner behavior varies: if saved
+repeat Jev just to obtain a prettier payload. `inventory` establishes shoe identity,
+construction and role; do not assume it includes mileage or observations. When
+mandatory shoe-history evidence is missing, use one bounded read-only query through
+the existing environment loader/client, not another inventory dump or schema hunt.
+See [bounded supplemental evidence](references/bounded-supplemental-evidence.md)
+for the tested retrieval pattern and evidence boundaries. Use saved features for
+calculations and `run-summary` for stored headline values; avoid searching temporary
+staging directories merely to restate available metrics. Runner behavior varies: if saved
 output contains a `$ tsx …` command echo before the JSON, remove only that recognized runner banner
 from the saved output before parsing; never blindly drop the first line of valid JSON.
 Keep stderr separate rather than merging diagnostics with JSON. Recover the existing
 captured result; do not repeat Jev or the Garmin fetch merely to fix a projection.
 
 `analyze-run --activity-id <actual Garmin ID> --date YYYY-MM-DD [--user-intent <explicit intent>] [--note <original USER note>]`:
-- Verifies identity/date, stages Garmin data through the pinned CLI, reads detailed metrics and date-scoped calendar/readiness/sleep context.
+- Verifies identity/date, stages Garmin data through the pinned CLI with the protected external env-file, and reads detailed metrics plus supported sleep context. HRV/daily data are not automatically fetched by this command; retrieve them separately only through a supported read-only path when material. Calendar/adaptive prescriptions and training readiness are explicitly unavailable, not no plan or zero readiness. Actual completed-workout structure/metadata, Garmin compliance, benefit/load and supplied RPE/feel remain usable evidence. Independently supplied prescriptions remain distinct from completed evidence.
 - Code calculates repetition structure, pace, lap/sample power, descriptive half changes and mechanics. Garmin REST/RECOVERY markers differ from generic 1-km INTERVAL laps.
 - Validated provider/timestamp/coverage Stryd samples are primary; Garmin watts remain separate. Null metadata units are explicitly marked inferred, not fabricated. Missing/invalid data stays missing. Do not compare watts across unlabeled/mixed sources or infer CP from a descriptor.
 - Jev interprets semantic effort and supplied intent. Plan is prescribed context, never evidence of execution. Choice confidence is model uncertainty, not calibrated accuracy. Low-confidence, closely split, unknown or measurement-gap results need deeper coaching review; do not blindly save the winner.
@@ -207,4 +214,4 @@ Shared TypeSafe credential is read at runtime from /home/john/.hermes/secrets/ty
 
 Jev has one bounded total request/body deadline and at most one OpenRouter fallback. Exact outage: `TypeSafe API (Jev) is unavailable`. Do not invent judgments on outage. Deterministic lookup still works; unknown/novel cases belong to the main coach.
 
-Clinical, training, Garmin recovery/import and shoe research guidance remains under the existing profile skills and their references. Their legacy shell recipes are reference, not permission to replace these tested tools with improvisation.
+Clinical, training, import and shoe expertise is in [current coaching evidence](../running-coaching/references/coaching-evidence.md) and [import evidence](../alpharunner-garmin-run-import/references/import-evidence.md), with their linked detailed references. These complement the tested CLI; they never authorize improvising another import or authentication workflow.
