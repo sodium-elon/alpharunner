@@ -59,7 +59,7 @@ export function normalizeAnalysisContext(date: string, context: GarminEvidence['
 export type ReferenceSource = { id: string; path: string; status: 'available' | 'unavailable'; excerpt?: string }
 export async function loadAnalysisReferences(features: WorkoutFeatures, currentRun: Record<string, unknown>, readReference = (path: string) => readFile(path, 'utf8')) {
   const root = fileURLToPath(new URL('../../../skills/running-coaching/references/', import.meta.url))
-  const mandatory = ['legacy-workflow', 'john-shoe-rotation', 'shoe-rotation-evidence', 'garmin-single-run-analysis']
+  const mandatory = ['coaching-evidence', 'john-shoe-rotation', 'shoe-rotation-evidence', 'garmin-single-run-analysis']
   if (features.power.source === 'stryd') mandatory.push('stryd-power-coaching')
   const current = row(currentRun.run)
   if (currentRun.status === 'found' && current.shoeId) {

@@ -1,97 +1,17 @@
-# Jev `choice` shoe picker — reusable pattern
+# Daily shoe choice: bounded judgments over actual evidence
 
-Answers "which shoe is best for my daily/easy runs" by asking Jev a `type: 'choice'`
-question over per-shoe live evidence + construction dossier. Live precedent:
-`alpharunner/scripts/shoe-choice.ts`.
+Use `coach inventory` and `coach recommend-shoes --purpose <actual workout>` with supported surface/pace/power-source filters from `coach --help`. The [decision owner](../../sportscoach-decisions/SKILL.md) controls typed Jev requests and bounded fallback; no direct provider POST or new script is required. This is a future recommendation, never evidence of the shoe worn or authorization to import/correct a run.
 
-## Why `choice` (not the single-run pace-band rule)
+## Candidate and evidence discipline
 
-The "which shoe would I have worn" rule queries one run's pace band across shoes.
-The daily-run question is different: it ranks whole **rotation candidates** for a
-*category* of running (easy/steady high-volume mileage) from aggregated history.
-Jev's `choice` question type is the right tool: `state` = aggregated evidence,
-`criteria` = per-candidate description, answer = a ranked pick with probabilities.
+- Distinguish a daily/easy category recommendation from a retrospective tempo-shoe choice or controlled economy comparison.
+- Exclude quality-flavored sessions before positive daily labels: steady-to-tempo, hard progressive long, threshold, sprint, interval, VO2, race and anaerobic work contaminate a naive steady/base match. A long run is daily evidence only when actual execution supports easy/aerobic intent.
+- Use current actual inventory IDs and condition-matched history, not a hardcoded two-shoe shortlist. Match surface, duration, pace and power source; missing comfort remains unknown. No condition-matched runs does not mean zero lifetime use.
+- Load [construction context](john-shoe-rotation.md) and [personal evidence tiers](shoe-rotation-evidence.md). Construction supports a role hypothesis, not a categorical ban or efficiency grade. Racer/aggressive geometry can be less suitable for daily volume without being incapable of easy running.
+- Comfort is an original 1–5 report, not an invented 9/10 or generic assignment note. A single report is one first impression, not a stable average. Different power sources cannot be pooled to prove economy.
 
-## Request shape
+## Judgment versus fact
 
-```json
-{
-  "state": "Kinvara 16: 7 daily runs, 40.5km | pace 5:24 | W 304 | HR 149 | GCT 253 | VR 8.1 | comfort 9.0\nRed Hare 9 Ultra: 16 daily runs, 105.6km | ...",
-  "model": "jev-latest",
-  "questions": {
-    "bestDaily": {
-      "type": "choice",
-      "instructions": "...weigh comfort/mechanics over raw cross-shoe power because conditions and power provenance differ per session...",
-      "criteria": {
-        "Kinvara 16": "lightweight flexible neutral daily trainer; PWRRUN; 29/25mm, 4mm drop, 210g; NO plate; evidence: 7 daily runs, 40.5km, comfort 9.0",
-        "Red Hare 9 Ultra": "maximal super-trainer; SUPER BOOM; ~43/35mm, 8mm drop; fiberglass stiffening, NOT confirmed carbon; evidence: 16 daily runs, 105.6km"
-      }
-    }
-  }
-}
-```
+Current recommendation output uses ranked/excluded/insufficientEvidence/limitations and actual shoeId. Preserve raw scores, probabilities/confidence and exclusion reasons. A close or low-confidence preference is a data gap, not proof the runner-up is inferior or the winner prevents injury. Do not translate model confidence into calibrated accuracy or clinical risk.
 
-## Critical shape details
-
-- **`state`** = the aggregate evidence string (nominate each candidate, comma-free
-  delimit so it reads as data). Put the same live numbers into each criteria string
-  too — Jev weighs criteria most heavily.
-- **Endpoints:** primary `https://api.typesafe.ai/v1/systemone`
-  (bearer `TYPESAFE_API_KEY`); fallback `https://openrouter.ai/api/alpha/decisions`
-  (bearer `OPENROUTER_API_KEY`) with `model` swapped to `typesafe/jev-1.13`. Both
-  live in `../env-profiles/local.env`.
-- **Response is wrapped:** the answers live under an `answers` object:
-  `ans.answers.bestDaily`, **not** `ans.bestDaily`.
-- **Choice answer fields:** `{ choice: string, probabilities: Record<string,number>, confidence: number }`.
-  Sort `Object.entries(probabilities).sort((a,b) => b[1]-a[1])` for rank order.
-
-## Daily-session classification (get this right first)
-
-Reject quality sessions even when their label contains an easy word —
-"steady to tempo-ish aerobic run", "continuous threshold / hard steady run",
-"hard progressive long run" all carry tempo/hard despite matching 'steady'/'base'.
-
-```ts
-const QUALITY = ['tempo','threshold','lactate','hard','sprint','interval','vo2','race','anaerobic','anaerob']
-const DAILY = ['easy','steady','base','recovery','long','endurance','aerobic','moderate']
-const isDaily = (intent, effort) => {
-  const text = `${String(intent).toLowerCase()} ${String(effort ?? '').toLowerCase()}`
-  if (QUALITY.some(q => text.includes(q))) return false   // negative test FIRST
-  return DAILY.some(d => text.includes(d))
-}
-```
-
-## Drizzle query (verified working against this schema)
-
-```ts
-import { asc, eq } from 'drizzle-orm'
-import { coachingNotes, runs, shoes, shoeObservations, getDb } from '../src/db'
-
-const rows = await db
-  .select({ date: runs.date, distanceKm: runs.distanceKm, /* ... */ effort: coachingNotes.effortLabel,
-            shoe: shoes.model, comfort: shoeObservations.comfort })
-  .from(runs)
-  .leftJoin(shoes, eq(runs.shoeId, shoes.id))                       // eq() operator form
-  .leftJoin(coachingNotes, eq(coachingNotes.runId, runs.id))        // NOT (t) => t.eq(...)
-  .leftJoin(shoeObservations, eq(shoeObservations.runId, runs.id))
-  .orderBy(asc(runs.date))
-```
-
-Remember: `date` is a JS `Date` under postgres — normalize `.toISOString().slice(0,10)`.
-`comfort` is integer 1–5 (only Kinvara carries a value here; the rest are gaps).
-
-## Verification commands (run ALL, not just the live script)
-
-```text
-cd /home/john/projects/alpharunner.workspace/alpharunner
-pnpm exec tsc --noEmit                 # REAL type gate — tsx skips typechecking
-pnpm run test:run                      # vitest suite (5 files / 82 tests)
-pnpm run build:local                   # production build
-pnpm dotenv -e ../env-profiles/local.env -- tsx scripts/shoe-choice.ts  # live run
-```
-
-Verdict on 2026-09 data: Kinvara 16 (conf 45%, prob 56%) vs Red Hare 9 Ultra
-(42%) — a close call resolved by Kinvara's single corerecoded comfort 9.0 (the
-only comfort score in the whole rotation), not by volume. Lesson: a mid-confidence
-close call where the winner's advantage is a lone subjective score is a **data gap**
-(durable: log comfort for the silent shoes), not proof the runner-up is worse.
+Give the mission, actual candidate, evidence tier/count, construction reason, matched conditions and uncertainty. If missing comfort/fit/tendon reports drive the close call, ask for those observations on future authorized runs rather than manufacturing a definitive winner. Routine coaching does not require builds, tests, deployment or a live provider experiment.

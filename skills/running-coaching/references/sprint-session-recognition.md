@@ -20,7 +20,7 @@ From `activities details <activity-id>`:
 
 - Map fields by `metricDescriptors[].metricsIndex`; never assume fixed metric positions across activities.
 - Useful keys include `directPower`, `directSpeed`, `directDoubleCadence`, `directHeartRate`, `sumElapsedDuration`, and `directTimestamp`.
-- Select and validate the power source before setting a sprint threshold. If Stryd is primary, follow `stryd-power-coaching.md` and use verified Stryd CP/relative repetition analysis; do not use Garmin boundaries. If Garmin `directPower` is the fallback, fetch current Garmin boundaries with `fitness power-zones`.
+- Select and validate the power source before setting a sprint threshold. If Stryd is primary, follow [Stryd doctrine](stryd-power-coaching.md) and use verified Stryd CP/relative repetition analysis; do not use Garmin boundaries. Garmin fallback zones require independently supplied dated Garmin calibration; live configuration is unavailable through Personal API. Otherwise analyze raw same-source bouts, not invented zones.
 - Group consecutive samples meeting the source-correct sprint criterion. Permit a one-second dropout when appropriate, then report bout count, duration, **average bout power**, peak power, peak speed, and peak cadence.
 - Inspect repetition spacing to distinguish repeated sprints from one noisy spike.
 - Compare later repetitions with earlier ones. A modest decline in peak speed/power is sprint fatigue; it does not prove general form collapse during recovery laps.

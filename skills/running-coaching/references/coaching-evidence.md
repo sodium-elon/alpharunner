@@ -1,0 +1,36 @@
+# Coaching evidence: execution, plan fit and recovery
+
+Use after the current `coach analyze-run` brief, before writing a full analysis. The main Sportscoach owns the interpretation; the CLI owns retrieval, arithmetic and authorized persistence. Use [the decision workflow](../../sportscoach-decisions/SKILL.md), not a new script or direct database mutation.
+
+## Capability and prescription boundary
+
+Calendar/adaptive recommendations and training readiness are unavailable through the Personal API backend. This is missing access, not evidence of no active plan, zero readiness or a skipped session. Use available sleep, HRV and daily stats with dated recent workload and current symptoms. Unsupported data does not justify another authentication route.
+
+Do not discard available completed-workout metadata: `features.garminAssessment`, `summaryDTO.directWorkoutComplianceScore`, benefit labels, training load, workout titles/identifiers, Garmin RPE (raw / 10), and feel can still be supplied. Attribute compliance to Garmin; it is not independent proof that every prescribed target was met. User RPE and feel are not algorithmic load, shoe comfort or a current pain report. Never call supplied feedback missing.
+
+If John independently supplies a dated prescription, establish whether it was Garmin-recommended, self-directed, spontaneous or unknown. Review the surrounding ±7-day block when available. Match recommendation versus completion by date, identity and actual structure; do not infer the original targets from a completed title. A recommendation is not execution. Modified/rescheduled/skipped recommendations need evidence, not speculation. Future adaptive advice can change; no command in this workflow retrieves it live.
+
+## Required synthesis
+
+1. **Execution:** establish workout intent before grading averages. Use actual work/recovery structure and validated source-labeled power, pace, HR, cadence, stride length, GCT and late-run changes. Long duration or high training effect alone does not make a run hard. Sprint/interval bouts are not kilometre averages; use [repetition recognition](sprint-session-recognition.md) and [Stryd doctrine](stryd-power-coaching.md).
+2. **Progression:** calculate strictly preceding 7/14/28-day volume, frequency and intensity exposure. Exclude target/future runs, identify incomplete coverage, sudden load/elevation/frequency jumps and long-run progression. Compare at least one relevant older workout or same-shoe observation when available. Longer controlled exposure, repeatability and consistency are genuine progress even when pace/economy cannot be compared.
+3. **Plan fit:** judge against the independently verified prescribed dose or John's stated intent. Without those, report plan fit unknown; do not invent exact-target compliance from Garmin's score. Separate execution, plan fit and recovery cost.
+4. **Recovery:** distinguish overnight/pre-run sleep/HRV/resting HR from post-exercise status. Missing recovery evidence is not observed poor recovery. Historical Achilles warnings are not today's symptoms. Give conditional next-session guidance when plan, overnight data or current symptoms are missing; do not categorically cancel the next adaptive session merely from run count, a long-run label or a stale warning. Acute safety symptoms are a separate stop gate.
+5. **Shoe:** verify actual current assignment and real observations; use [construction](john-shoe-rotation.md), [personal evidence tiers](shoe-rotation-evidence.md) and relevant pair dossier. Construction qualifies a mechanism, not proof of comfort, injury protection or economy. A recommendation never proves what John wore.
+
+## Measurement and scientific limits
+
+- Verify power provider, descriptors, timing and coverage before using watts. A Stryd app field with null/zero-only samples supplies no usable Stryd power. Use valid Garmin power in a separate Garmin-native lane; never merge sources. Current or historically effective, dated Stryd CP is required for CP percentages/zones. Do not infer calibration from a descriptor or one workout. Follow the detailed [CP recheck ladder and official zones](stryd-power-coaching.md).
+- HR-zone boundaries need source-specific, effective-date calibration. Historical HR threshold values are not permanent settings; Garmin's current threshold screen is not proof that this run generated the setting. Use [threshold-chart evidence](garmin-lactate-threshold-trend.md). Invalid/N/A zone durations stay missing, not zero. HR drift alone proves neither unreliable sensing nor physiological decoupling.
+- Treadmill summary and raw lap/detail distance may disagree. Compare durations too, calculate both pace scales with tools and label provenance. Neither ruler is automatically true; call a summary calibrated only with evidence. Preserve raw measurements, avoid false PBs and do not rescale every lap by assertion.
+- Cadence is individual and pace-dependent: no universal 180 spm target. Assess pace-matched history plus step length, power, GCT, terrain, comfort and symptoms. A 5–10% cadence change is a monitored gait-retraining option for a specific loading problem, not generic performance advice. No universal GCT target either; stability and matched within-run changes matter more than chasing a low number.
+- Shoe comparisons require same surface/treadmill, similar duration, cooling, recovery, pace or source-correct power and mission. Speed per watt is a model-derived screen, not measured physiological economy. Compare late 15–20-minute blocks when available. Use repeated controlled crossover exposures before ranking; one run is a mechanical-tolerance screen. Separate fit, stability, hotspots, comfort and next-morning tendon reports from telemetry.
+- When today's near-threshold pace is proposed as tomorrow's base pace, acknowledge adaptation but quantify the calibration gap. For Stryd Easy's upper boundary calculate required CP as P / 0.80 (or P / 0.75 deeper in Easy), using tools and verified CP provenance. Repeated near-CP days are not easy volume. Prefer predominantly easy volume and limited quality exposure when recovery supports it, without overriding an unseen plan.
+
+## Testimony, safety and delivery
+
+Only original user words are testimony. Use `coach note --source user --text <original text>` for genuine notes; generated reports and historical cautions are not current symptoms. Pain judgments describe a report, never probability of injury. Preserve original text; keep generated coaching in structured coaching fields.
+
+Do not diagnose. Sharp or worsening pain, altered gait, persistent symptoms, chest pain, fainting or neurological symptoms require stopping/adjusting training and qualified clinician assessment as appropriate. Soft foam, low GCT or a clean power trace does not establish orthopedic safety.
+
+Deliver the analysis, not just an import acknowledgment: execution, applicable plan fit or missing prescription, recovery risk, one matched historical comparison when possible, actual-shoe context, power provenance and one concrete next action. Keep dashboard prose compact per SKILL field bounds; a saved note does not replace the final spoken/written debrief. Report stored, newly imported and verified, or Garmin-only not stored distinctly. No raw health dumps in chat/memory.

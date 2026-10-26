@@ -5,7 +5,7 @@ Use this when the user asks to analyze one completed Garmin run rather than buil
 ## Durable coaching rules
 
 1. **Anchor intensity analysis in a validated power source when available.**
-   - Inventory `activities details` descriptors before choosing the watts.
+   - Use the exact-date `coach analyze-run` descriptors/source evidence before choosing watts; bounded lower-level retrieval follows the import skill's protected env-file configuration, never a scratch script.
    - Prefer validated Stryd/Connect IQ power for John and follow `stryd-power-coaching.md`, including verified Stryd CP.
    - Keep Garmin `directPower` and Garmin zone data separate as labeled secondary/fallback evidence.
    - Use heart rate secondarily for cardiac drift, heat response, and sanity checks.
@@ -39,4 +39,4 @@ Use this when the user asks to analyze one completed Garmin run rather than buil
 
 ## Pitfall
 
-Do not lead with HR-zone drama when running power is present. HR can look apocalyptic on a hot or threshold day while power shows the actual workload distribution more accurately.
+Do not lead with HR-zone drama when source-correct calibrated power is present. HR adds cardiovascular/recovery context; neither a rising HR trace nor stable watts alone proves sensor error, easy effort or physiological decoupling. Missing CP prevents calibrated zones, not descriptive execution analysis. See [current coaching evidence](coaching-evidence.md) for plan/readiness missingness and medical boundaries.

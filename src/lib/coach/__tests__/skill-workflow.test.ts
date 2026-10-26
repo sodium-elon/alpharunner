@@ -96,7 +96,7 @@ it('routes routine imports directly through the main Sportscoach with a bounded 
     const content = await readFile(new URL(`${name}/SKILL.md`, root), 'utf8')
     expect(content).toContain('/home/john/projects/alpharunner.workspace/alpharunner/skills/sportscoach-decisions/SKILL.md')
     expect(content).toContain('main Sportscoach')
-    expect(content).toContain('references/legacy-workflow.md')
+    expect(content).not.toContain('legacy-workflow.md')
   }
 })
 

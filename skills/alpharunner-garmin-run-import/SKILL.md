@@ -14,7 +14,14 @@ Do not create temporary TypeScript/SQL import programs, repeatedly rediscover sc
 
 Main-coach analysis is real structured coaching JSON, not placeholder prose or model-generated user notes. Do not save an uncertain Jev label blindly. The importer adds actual source-labeled primary power, inserts all children transactionally, verifies values/counts, and recomputes shoe mileage from real runs. It does not overwrite an existing matching activity; conflicting date/shoe scope fails. Report completion only when the actual result has verified:true. Inspect a failed or interrupted task before retrying.
 
-Complete prior Garmin retrieval/recovery guidance, normalization rules, research and history remain unchanged in /home/john/projects/alpharunner.workspace/alpharunner/skills/alpharunner-garmin-run-import/references/legacy-workflow.md. Read relevant sections only when needed. Its relative reference paths are relative to this import skill directory. Legacy scratch-script recipes are not the normal path.
+## Current reference map
+
+- Mandatory [identity, authorization and completion gates](references/import-evidence.md).
+- [Personal API retrieval and staging contract](references/cli-and-db-query-pitfalls.md) and [bounded authentication](references/garmin-auth-recovery-recipe.md): every fresh Garmin process receives the protected env-file path explicitly.
+- [Telemetry/source validation](references/telemetry-validation.md) and [schema interpretation](references/db-schema-column-pitfalls.md), not alternate mutation workflows.
+- [Historic discovery](references/historic-bulk-import-pagination.md) only for explicitly scoped bulk work; [coaching evidence](../running-coaching/references/coaching-evidence.md) for the main coach's synthesis.
+
+Available completed-workout metadata, compliance, RPE/feel and actual structure remain evidence even though live plan/readiness access is missing. Do not label supplied activity feedback unavailable. Use current reference paths even if a tool brief still supplies an obsolete source pointer.
 
 No deployment, gateway restart, production-row test writes, or unsolicited voice playback is needed to use this CLI.
 
