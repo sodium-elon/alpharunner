@@ -30,3 +30,7 @@ No deployment, gateway restart, production-row test writes, or unsolicited voice
 Temporary coaching JSON is import data, not application code. Validate its schema, require verified:true, read back the run/task, then remove the artifact. Import verification is not a passing build/test suite.
 
 If an explicit verification request requires tests, inspect failures before changing code. Tests expecting an absent provider credential can be contaminated by inherited environment variables. Confirm the mechanism, isolate only the relevant variable in the test shell, and rerun the canonical test command directly so verification tracking sees the result. Never print keys or change saved credentials to fix a test environment. See references/test-environment-verification.md.
+
+## Repository-owned learning
+
+These managed skills and canonical knowledge are read-only inside the protected Sportscoach service. Save proposed improvements under `/home/john/.hermes/profiles/sportscoach/state/skill-proposals/` with current evidence and the owning source path. Apply approved changes through the AlphaRunner repository, tests, review and release installer—not by patching installed files. A read-only refusal is not permission to try another file tool, shell, service or alternate path. New proposals and normal task state stay writable; useful learning is preserved for source reconciliation.

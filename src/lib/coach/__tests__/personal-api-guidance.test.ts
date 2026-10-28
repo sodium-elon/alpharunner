@@ -5,6 +5,16 @@ import { fileURLToPath } from 'node:url'
 import { runInNewContext } from 'node:vm'
 import { expect, it, vi } from 'vitest'
 
+it('keeps installer regressions in hosted CI and routes managed learning through source', async () => {
+  const workflow = await readFile(new URL('../../../../.github/workflows/quality.yml', import.meta.url), 'utf8')
+  expect(workflow).toContain("python3 -B -m unittest discover -s scripts -p 'test_*sportscoach*.py'")
+  for (const name of ['running-coaching', 'alpharunner-garmin-run-import', 'sportscoach-decisions']) {
+    const text = await readFile(new URL(`../../../../skills/${name}/SKILL.md`, import.meta.url), 'utf8')
+    expect(text).toContain('state/skill-proposals/')
+    expect(text).toContain('not by patching installed files')
+  }
+})
+
 it('ships a current-only coaching reference graph with no executable retired advice', async () => {
   const root = fileURLToPath(new URL('../../../../skills/', import.meta.url))
   for (const name of ['running-coaching', 'alpharunner-garmin-run-import', 'sportscoach-decisions']) {

@@ -25,3 +25,5 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test:run
+      - name: Sportscoach installer and protection regressions
+        run: python3 -B -m unittest discover -s scripts -p 'test_*sportscoach*.py' -v

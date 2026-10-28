@@ -215,3 +215,7 @@ Shared TypeSafe credential is read at runtime from /home/john/.hermes/secrets/ty
 Jev has one bounded total request/body deadline and at most one OpenRouter fallback. Exact outage: `TypeSafe API (Jev) is unavailable`. Do not invent judgments on outage. Deterministic lookup still works; unknown/novel cases belong to the main coach.
 
 Clinical, training, import and shoe expertise is in [current coaching evidence](../running-coaching/references/coaching-evidence.md) and [import evidence](../alpharunner-garmin-run-import/references/import-evidence.md), with their linked detailed references. These complement the tested CLI; they never authorize improvising another import or authentication workflow.
+
+## Repository-owned learning
+
+These managed skills and canonical knowledge are read-only inside the protected Sportscoach service. Save proposed improvements under `/home/john/.hermes/profiles/sportscoach/state/skill-proposals/` with current evidence and the owning source path. Apply approved changes through the AlphaRunner repository, tests, review and release installer—not by patching installed files. A read-only refusal is not permission to try another file tool, shell, service or alternate path. New proposals and normal task state stay writable; useful learning is preserved for source reconciliation.
