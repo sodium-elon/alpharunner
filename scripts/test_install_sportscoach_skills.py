@@ -101,9 +101,49 @@ class InstallTest(unittest.TestCase):
                 self.assertFalse(self.profile.exists())
                 original.write_bytes(content)
 
+    def test_unmanaged_supporting_knowledge_requires_reconciliation_without_mutation(self):
+        self.install()
+        for name in NAMES:
+            for folder in ('references', 'scripts', 'local-knowledge'):
+                for mode in ('--install', '--verify'):
+                    with self.subTest(name=name, folder=folder, mode=mode):
+                        extra = self.profile / name / folder / 'learned-treadmill.md'
+                        extra.parent.mkdir(exist_ok=True)
+                        extra.write_text('unique supporting knowledge; preserve for source review')
+                        before = {str(p.relative_to(self.profile)): p.read_bytes()
+                                  for p in self.profile.rglob('*') if p.is_file()}
+                        result = self.run_installer(mode)
+                        self.assertNotEqual(result.returncode, 0)
+                        self.assertIn('source reconciliation', result.stderr)
+                        self.assertEqual(before, {str(p.relative_to(self.profile)): p.read_bytes()
+                                                for p in self.profile.rglob('*') if p.is_file()})
+                        extra.unlink()
+
+    def test_verify_requires_complete_matching_manifest_without_mutation(self):
+        self.install()
+        path = self.profile / '.sportscoach-install.json'
+        original = json.loads(path.read_text())
+        for mutation in ('missing', 'stale', 'absent'):
+            with self.subTest(mutation=mutation):
+                manifest = dict(original)
+                if mutation == 'missing':
+                    manifest.pop(next(iter(manifest)))
+                elif mutation == 'stale':
+                    manifest[next(iter(manifest))] = '0' * 64
+                if mutation == 'absent':
+                    path.unlink()
+                else:
+                    path.write_text(json.dumps(manifest))
+                before = path.read_bytes() if path.exists() else None
+                result = self.run_installer('--verify')
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('Installed manifest', result.stderr)
+                self.assertEqual(path.read_bytes() if path.exists() else None, before)
+                path.write_text(json.dumps(original))
+
     def test_install_deletes_only_unchanged_retired_managed_files(self):
         retired = self.seed_retired()
-        unmanaged = retired.with_name('personal-research.md')
+        unmanaged = self.profile / 'running-coaching/SKILL.profile-installed.md'
         unmanaged.write_text('preserve me')
         self.install()
         self.assertFalse(retired.exists())

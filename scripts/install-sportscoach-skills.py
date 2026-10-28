@@ -89,6 +89,22 @@ def main():
         if not target.is_file() or hashlib.sha256(target.read_bytes()).hexdigest() != expected_hash:
             parser.error(f'Refusing divergent retired file: {relative}')
         removals.append(target)
+    # Source-owned roots must not silently accumulate discoverable local knowledge.
+    # Preserve unknown files; require source reconciliation before any mutation.
+    known = set(manifest) | set(previous)
+    for name in NAMES:
+        for target in (args.profile_skills / name).rglob('*'):
+            if '__pycache__' in target.parts:
+                continue
+            if target.is_dir() and not target.is_symlink():
+                continue
+            relative = str(target.relative_to(args.profile_skills))
+            if relative == f'{name}/SKILL.profile-installed.md':
+                continue
+            if relative not in known:
+                parser.error(f'Unmanaged supporting file requires source reconciliation: {relative}')
+    if args.verify and previous != manifest:
+        parser.error('Installed manifest differs from canonical source; source reconciliation or installation required')
     # Preflight every copy and removal before changing any file or the manifest.
     for original, target in copies:
         target.parent.mkdir(parents=True, exist_ok=True)
