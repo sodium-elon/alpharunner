@@ -1,0 +1,9 @@
+#!/bin/sh
+# Hermes passes EDITOR as a single executable, followed by the config filename.
+set -eu
+if [ "$#" -ne 1 ]; then
+    printf '%s\n' 'Usage: sportscoach-profile-policy-editor configfilename' >&2
+    exit 2
+fi
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+exec /home/john/.hermes/hermes-agent/venv/bin/python -B "$script_dir/sportscoach_profile_policy.py" --editor "$1"

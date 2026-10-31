@@ -1,0 +1,15 @@
+{
+  "profile": "sportscoach",
+  "platforms": ["cli", "telegram", "discord", "api_server", "homeassistant"],
+  "allowed_toolsets": ["terminal", "file", "skills", "web", "browser", "memory", "session_search", "clarify", "todo", "homeassistant", "tts", "vision", "messaging", "code_execution", "no_mcp"],
+  "approved_legacy_bundles": ["hermes-cli", "hermes-telegram", "hermes-discord", "hermes-cron", "hermes-homeassistant", "hermes-whatsapp", "hermes-slack", "hermes-signal", "hermes-qqbot", "hermes-yuanbao", "hermes-teams", "hermes-google_chat"],
+  "approved_retired_native_toolsets": ["discord"],
+  "disabled_toolsets": ["delegation", "cronjob", "computer_use", "discord_admin", "kanban", "spotify", "image_gen"],
+  "disabled_skills": ["hermes-agent", "computer-use", "health-data-coaching"],
+  "required_skill_paths": {
+    "sportscoach-decisions": "sportscoach-decisions/SKILL.md",
+    "running-coaching": "running-coaching/SKILL.md",
+    "alpharunner-garmin-run-import": "alpharunner-garmin-run-import/SKILL.md",
+    "alexa-voice-replies": "smart-home/alexa-voice-replies/SKILL.md"
+  }
+}
