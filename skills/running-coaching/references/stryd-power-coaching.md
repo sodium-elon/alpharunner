@@ -179,6 +179,16 @@ A single metric moving is not proof of improved economy, deteriorating form, or 
 - At fixed Stryd power, compare pace and late-run HR; at fixed pace, compare Stryd power and late-run HR. Repeat before ranking shoes.
 - A lower power number is not automatically better if pod placement, weight configuration, terrain, wind, or stream identity changed.
 
+### Treadmill distance is a separate source gate
+
+When Stryd pace/distance is verified as the original source, prefer it over the treadmill console for physical-distance interpretation absent contrary calibration or sensor evidence. Stryd power presence alone does not establish the pace/distance source. Check actual sensor/watch source evidence; if unavailable, state the uncertainty once, do not invent Stryd-derived laps or default to the console as ground truth.
+
+A confirmed post-run console edit explains why the recorded summary and original laps differ; it does not prove the console's physical accuracy. Preserve both raw representations and qualify pace-based comparisons and records by distance source. Validated watts and duration can still support execution assessment without resolving physical distance; CP and source-native power requirements above remain unchanged.
+
+Never silently rescale laps, overwrite totals, change calibration, reimport, or edit saved notes to resolve this discrepancy. Separately authorized corrections must use their supported workflow.
+
+Stryd's [Treadmill & Stryd Common Questions](https://help.stryd.com/en/articles/8961322-treadmill-stryd-common-questions) and [Pace & Distance Accuracy](https://help.stryd.com/en/articles/6879062-pace-distance-accuracy-how-to-understand-test-and-fine-tune-stryd-s-pace-distance) are manufacturer guidance, not per-run proof. See [summary-versus-lap interpretation](treadmill-summary-lap-interpretation.md) for the accepted guidance, source-verification limitation and confirmed/unconfirmed explanation branches. Do not treat the guidance as verified sensor configuration for an individual run or as permission to change calibration.
+
 ## 9. Minimum reporting standard
 
 Whenever Stryd power drives the verdict, include:

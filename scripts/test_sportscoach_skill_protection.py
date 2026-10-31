@@ -17,9 +17,23 @@ class ProtectionTest(unittest.TestCase):
         expected = {f'%h/.hermes/profiles/sportscoach/skills/{name}' for name in NAMES}
         expected |= {'%h/.hermes/profiles/sportscoach/skills/.sportscoach-install.json',
                      '%h/projects/alpharunner.workspace/alpharunner/skills'}
+        expected |= {'%h/.hermes/profiles/sportscoach/skills/smart-home/alexa-voice-replies',
+                     '%h/projects/hermes-voice-ha-integration.workspace/hermes-voice-ha-integration/skills/profiles/sportscoach'}
         self.assertEqual(set(readonly), expected)
         self.assertNotIn('ProtectSystem=', unit)
         self.assertNotIn('ReadWritePaths=', unit)
+
+    def test_native_protection_also_covers_source_owned_sportscoach_voice_guidance(self):
+        unit = (ROOT / 'deploy/sportscoach-skill-protection.conf').read_text()
+        readonly = next(line.split('=', 1)[1].split() for line in unit.splitlines()
+                        if line.startswith('ReadOnlyPaths='))
+        for path in ('%h/.hermes/profiles/sportscoach/skills/smart-home/alexa-voice-replies',
+                     '%h/projects/hermes-voice-ha-integration.workspace/hermes-voice-ha-integration/skills/profiles/sportscoach'):
+            self.assertIn(path, readonly)
+
+    def test_startup_also_verifies_source_owned_profile_policy(self):
+        unit = (ROOT / 'deploy/sportscoach-skill-protection.conf').read_text()
+        self.assertIn('ExecStartPre=%h/.hermes/hermes-agent/venv/bin/python -B %h/projects/alpharunner.workspace/alpharunner/scripts/sportscoach_profile_policy.py --verify', unit)
 
     def test_ci_executes_all_sportscoach_python_regressions(self):
         workflow = (ROOT / '.github/workflows/quality.yml').read_text()
