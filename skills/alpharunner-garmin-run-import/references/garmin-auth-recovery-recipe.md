@@ -21,7 +21,9 @@ The CLI exchanges the key for a bearer token and renews it on demand. `auth logi
 ## Failure rules
 
 - One read-only auth check is sufficient. The CLI owns bounded token renewal and one authentication retry; do not add agent retry loops.
-- If the key is missing, expired, revoked or still rejected, stop and report the sanitized error. John must manage his key through Garmin Connect; never request the secret in chat.
+- Run the configured command above before reporting missing credentials. A bare CLI invocation or a check of only the shell/profile environment can omit the external env-file; absence of `GARMIN_PERSONAL_API_KEY` alone also ignores the supported `GARMIN_TOKEN` alias. Neither proves that the configured key is missing. Do not read or print credential values to diagnose this.
+- Do not request a replacement key or new login merely because an unconfigured invocation failed. The retired MCP being offline is not a Personal API failure and is never a recovery path.
+- If the configured probe confirms that the key is missing, expired, revoked or still rejected, stop and report the sanitized error. John must manage his key through Garmin Connect; never request the secret in chat.
 - HTTP 404 or an unsupported-capability error is not an authentication failure. Do not run auth commands repeatedly to recover calendar/readiness or unsupported workout writes.
 - Personal API activity discovery uses date-filtered completed-activity search. Scheduled/adaptive workout calendar and training readiness are unavailable; preserve that missing-evidence state explicitly, never fabricate a plan or recovery score.
 - FIT-based lap/zone staging retains the existing import contract. Do not manually synthesize zero-valued laps or zone data to get an import through.
