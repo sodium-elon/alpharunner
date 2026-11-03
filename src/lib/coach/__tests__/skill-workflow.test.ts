@@ -1,6 +1,20 @@
 import { readFile } from 'node:fs/promises'
 import { expect, it } from 'vitest'
 
+it('requires a configured Garmin probe before diagnosing missing credentials on any lookup', async () => {
+  const root = new URL('../../../../skills/', import.meta.url)
+  const decisions = await readFile(new URL('sportscoach-decisions/SKILL.md', root), 'utf8')
+  const contract = decisions.split('## Garmin access before any lookup')[1]?.split('\n## ')[0]
+  expect(contract, 'credential-aware retrieval must cover read-only lookups, not just imports').toBeDefined()
+  for (const phrase of ['GARMIN_TOKEN', 'GARMIN_PERSONAL_API_KEY', '--env-file', 'bare CLI', 'not evidence', 'retired Garmin MCP', 'garmin-auth-recovery-recipe.md']) {
+    expect(contract).toContain(phrase)
+  }
+  const recovery = await readFile(new URL('alpharunner-garmin-run-import/references/garmin-auth-recovery-recipe.md', root), 'utf8')
+  for (const phrase of ['before reporting missing credentials', 'Do not request a replacement key', 'Do not read or print credential values']) {
+    expect(recovery).toContain(phrase)
+  }
+})
+
 it('keeps linked multi-turn imports evidence-bound through completion and voice incident review', async () => {
   const root = new URL('../../../../skills/sportscoach-decisions/', import.meta.url)
   const referencePath = 'references/request-continuity-and-voice-evidence.md'
