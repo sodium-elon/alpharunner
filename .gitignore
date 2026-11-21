@@ -8,3 +8,6 @@ dist
 tmp
 
 storybook-static/
+
+# Machine-local Claude Code permissions (keep shared .claude files tracked).
+/.claude/settings.local.json
