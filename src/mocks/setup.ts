@@ -14,7 +14,7 @@ export function initializeMockServer() {
 
   if (mockGlobal.__mswListening) return
   mockGlobal.__mswListening = true
-  mockServer.listen({ onUnhandledRequest: 'warn' })
+  mockServer.listen({ onUnhandledFrame: 'warn' })
 }
 
 export function closeMockServer() {

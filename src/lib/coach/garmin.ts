@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
 import { z } from 'zod'
+import { SanitizedError } from './sanitized-error'
 import type { GarminStagedActivity } from '../../../scripts/garmin/types'
 
 const executeFile = promisify(execFile)
@@ -34,14 +35,14 @@ export class GarminGateway {
       else if (typeof failure.code === 'string' && ['ENOENT', 'EACCES', 'EPERM', 'EIO', 'ENOMEM', 'EAGAIN', 'ETIMEDOUT', 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER', 'ABORT_ERR'].includes(failure.code)) metadata.push(`error=${failure.code}`)
       if (typeof failure.signal === 'string' && ['SIGTERM', 'SIGKILL', 'SIGINT', 'SIGABRT', 'SIGHUP', 'SIGSEGV', 'SIGPIPE', 'SIGQUIT', 'SIGALRM'].includes(failure.signal)) metadata.push(`signal=${failure.signal}`)
       if (failure.killed === true) metadata.push('killed=true')
-      throw new Error(`Garmin command failed: ${args.slice(0, 2).join(' ')} (${metadata.join(' ') || 'error=unknown'})`)
+      throw new SanitizedError(`Garmin command failed: ${args.slice(0, 2).join(' ')} (${metadata.join(' ') || 'error=unknown'})`)
     }
   }
   private async json(args: string[]): Promise<unknown> {
     try { return JSON.parse(await this.run(args)) }
     catch (error) {
       if (error instanceof Error && error.message.startsWith('Garmin command failed:')) throw error
-      throw new Error(`Garmin returned invalid JSON: ${args.slice(0, 2).join(' ')}`)
+      throw new SanitizedError(`Garmin returned invalid JSON: ${args.slice(0, 2).join(' ')}`)
     }
   }
 

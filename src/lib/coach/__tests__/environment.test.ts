@@ -11,6 +11,15 @@ vi.mock('node:os', async importOriginal => ({
 
 const dirs: string[] = []
 afterEach(async () => { await Promise.all(dirs.splice(0).map(p => rm(p, { recursive: true, force: true }))) })
+it('marks unreadable credential files as sanitized failures without retaining a private cause', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'private-coach-env-')); dirs.push(root)
+  const error = await loadCoachEnvironment({ projectEnv: root, processEnv: {} }).catch(error => error)
+  expect(error.constructor.name).toBe('SanitizedError')
+  expect(error.message).toBe('Coach environment file could not be read')
+  expect(error.cause).toBeUndefined()
+  expect(JSON.stringify(error)).not.toContain(root)
+})
+
 it('loads a configured shared credential path without depending on terminal HOME', async () => {
   const root = await mkdtemp(join(tmpdir(), 'coach-env-')); dirs.push(root)
   const projectEnv = join(root, 'project.env'), sharedEnv = join(root, 'real-shared.env')

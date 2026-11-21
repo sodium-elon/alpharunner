@@ -2,6 +2,22 @@ import { writeFile, access } from 'node:fs/promises'
 import { expect, it, vi } from 'vitest'
 import { GarminGateway } from '../garmin'
 
+it.each(['process', 'json'])('marks %s failures as sanitized without retaining provider secrets', async failure => {
+  const secret = 'token=private-credential stdout=private-health-data'
+  const original = Object.assign(new Error(secret), { code: 75, stderr: secret })
+  const execute = async () => {
+    if (failure === 'process') throw original
+    return secret
+  }
+  const gateway = new GarminGateway({ executable: '/fixture-only', tokenStore: '/fixture-only', execute })
+  const error = await gateway.findActivities('2026-10-04').catch(error => error)
+  expect(error.constructor.name).toBe('SanitizedError')
+  expect(error.cause).toBeUndefined()
+  expect(error).not.toBe(original)
+  expect(String(error)).not.toContain(secret)
+  expect(JSON.stringify(error)).not.toContain(secret)
+})
+
 it('preserves bounded exit diagnostics without leaking command output or credential-bearing errors', async () => {
   const privateText = 'profile=private token=secret password=hidden ENV=credential'
   const execute = async () => { throw Object.assign(new Error(privateText), { code: 75, stdout: privateText, stderr: privateText }) }

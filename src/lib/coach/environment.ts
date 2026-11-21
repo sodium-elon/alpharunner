@@ -3,6 +3,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parse } from 'dotenv'
+import { SanitizedError } from './sanitized-error'
 
 export type CoachEnvironment = Awaited<ReturnType<typeof loadCoachEnvironment>>
 
@@ -16,7 +17,7 @@ async function envFile(path: string) {
   try { return parse(await readFile(path, 'utf8')) }
   catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return {}
-    throw new Error('Coach environment file could not be read')
+    throw new SanitizedError('Coach environment file could not be read')
   }
 }
 

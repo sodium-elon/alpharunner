@@ -31,7 +31,7 @@ import { ShoeNameInline, formatShoeName } from '~/components/shoe-name'
 const RUNS_PER_WINDOW = 20
 
 const getShoeDetail = createServerFn({ method: 'GET' })
-  .inputValidator((shoeId: string) => shoeId)
+  .validator((shoeId: string) => shoeId)
   .handler(async ({ data: shoeId }) => {
     if (isMockMode()) {
       const res = await fetch(`${getMockBaseUrl()}/api/shoes/${shoeId}`)

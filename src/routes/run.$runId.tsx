@@ -30,7 +30,7 @@ function formatDuration(seconds: number) {
 }
 
 const getRunDetail = createServerFn({ method: 'GET' })
-  .inputValidator((runId: string) => runId)
+  .validator((runId: string) => runId)
   .handler(async ({ data: runId }) => {
     if (isMockMode()) {
       const res = await fetch(`${getMockBaseUrl()}/api/runs/${runId}`)

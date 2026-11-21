@@ -9,29 +9,29 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as RunsRouteImport } from './routes/runs'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ShoesShoeIdRouteImport } from './routes/shoes.$shoeId'
+import { Route as RunsRouteImport } from './routes/runs'
 import { Route as RunRunIdRouteImport } from './routes/run.$runId'
+import { Route as ShoesShoeIdRouteImport } from './routes/shoes.$shoeId'
 
-const RunsRoute = RunsRouteImport.update({
-  id: '/runs',
-  path: '/runs',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ShoesShoeIdRoute = ShoesShoeIdRouteImport.update({
-  id: '/shoes/$shoeId',
-  path: '/shoes/$shoeId',
+const RunsRoute = RunsRouteImport.update({
+  id: '/runs',
+  path: '/runs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RunRunIdRoute = RunRunIdRouteImport.update({
   id: '/run/$runId',
   path: '/run/$runId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShoesShoeIdRoute = ShoesShoeIdRouteImport.update({
+  id: '/shoes/$shoeId',
+  path: '/shoes/$shoeId',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -71,13 +71,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/runs': {
-      id: '/runs'
-      path: '/runs'
-      fullPath: '/runs'
-      preLoaderRoute: typeof RunsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -85,11 +78,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/shoes/$shoeId': {
-      id: '/shoes/$shoeId'
-      path: '/shoes/$shoeId'
-      fullPath: '/shoes/$shoeId'
-      preLoaderRoute: typeof ShoesShoeIdRouteImport
+    '/runs': {
+      id: '/runs'
+      path: '/runs'
+      fullPath: '/runs'
+      preLoaderRoute: typeof RunsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/run/$runId': {
@@ -97,6 +90,13 @@ declare module '@tanstack/react-router' {
       path: '/run/$runId'
       fullPath: '/run/$runId'
       preLoaderRoute: typeof RunRunIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shoes/$shoeId': {
+      id: '/shoes/$shoeId'
+      path: '/shoes/$shoeId'
+      fullPath: '/shoes/$shoeId'
+      preLoaderRoute: typeof ShoesShoeIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
