@@ -1,6 +1,6 @@
 {
   "name": "alpharunner",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "AlphaRunner MVP - dashboard and control center for tracking runs",
   "type": "module",
@@ -72,7 +72,7 @@
     "@eslint/js": "^10.0.1",
     "@storybook/react-vite": "^10.6.8",
     "@stylistic/eslint-plugin": "6.0.1",
-    "@tanstack/react-query-devtools": "^5.108.1",
+    "@tanstack/react-query-devtools": "^5.108.2",
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

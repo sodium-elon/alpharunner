@@ -27,12 +27,14 @@ commands as part of dependency validation.
 - ESLint 10 requires intentional error boundaries. `SanitizedError` discards
   potentially secret-bearing causes; tests assert that upstream secrets and causes
   are not retained. Do not fix lint by attaching raw environment/Garmin errors.
-- Query devtools 5.108.1 was selected when 5.108.2 was younger than the release-age
-  policy. Its caret range allows a future mature release. Revisit on the next
-  policy-respecting refresh. React Query's existing `latest` resolves to 5.108.2
-  in the final lockfile after that release matured. Never add age exemptions to
-  make an update succeed. Keep original `allowBuilds` and release-age policy;
-  review any automatic pnpm policy edits before accepting a lockfile.
+- Query devtools 5.108.2 now satisfies the release-age policy; the November 22
+  maintenance refresh selects `^5.108.2`, matching React Query's existing `latest`
+  resolution. simple-icons 16.38.1 caused pnpm to propose a new release-age
+  exemption, so retain `^16.38.0` until 16.38.1 matures under the unchanged policy.
+  Re-query both on every maintenance run; neither decision is a permanent hold.
+  Never add age exemptions to make an update succeed. Keep original `allowBuilds`
+  and release-age policy; review any automatic pnpm policy edits before accepting
+  a lockfile.
 
 ## Required verification
 
