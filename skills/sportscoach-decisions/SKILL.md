@@ -99,7 +99,12 @@ use bounded, batched judgments to classify natural-language intent, select looku
 versus analysis, or disambiguate against actual candidates when needed. Do not
 reclassify an already resolved CLI command or use Jev to invent measurements or
 replace arithmetic. Code owns retrieval/calculation and execution. Do not search
-schemas, fetch FIT, delegate, import, or write merely to answer a factual question.
+schemas, fetch FIT, delegate, import, or write for a fact already resolved by the
+summary. A missing field in a summary or analysis projection is not evidence that
+Garmin didn't record it. If John points to a Connect IQ chart, inspect the original
+image when available and take a literal humidity or temperature question as
+environmental, not as shorthand for HR. For material missing telemetry use the
+[single-run supplemental telemetry rules](../running-coaching/references/garmin-single-run-analysis.md#material-supplemental-telemetry).
 Give one short answer with units and date. This is separate from full analysis.
 
 ## Direct routine ownership and bounded completion
@@ -162,7 +167,7 @@ captured result; do not repeat Jev or the Garmin fetch merely to fix a projectio
 `analyze-run --activity-id <actual Garmin ID> --date YYYY-MM-DD [--user-intent <explicit intent>] [--note <original USER note>]`:
 - Verifies identity/date, stages Garmin data through the pinned CLI with the protected external env-file, and reads detailed metrics plus supported sleep context. HRV/daily data are not automatically fetched by this command; retrieve them separately only through a supported read-only path when material. Calendar/adaptive prescriptions and training readiness are explicitly unavailable, not no plan or zero readiness. Actual completed-workout structure/metadata, Garmin compliance, benefit/load and supplied RPE/feel remain usable evidence. Independently supplied prescriptions remain distinct from completed evidence.
 - Code calculates repetition structure, pace, lap/sample power, descriptive half changes and mechanics. Garmin REST/RECOVERY markers differ from generic 1-km INTERVAL laps.
-- Validated provider/timestamp/coverage Stryd samples are primary; Garmin watts remain separate. Null metadata units are explicitly marked inferred, not fabricated. Missing/invalid data stays missing. Do not compare watts across unlabeled/mixed sources or infer CP from a descriptor.
+- Validated provider/timestamp/coverage Stryd samples are primary; Garmin watts remain separate. The analysis may mark null API units as inferred; explicit original FIT units for the matched field supersede that caveat in the report. Missing/invalid data stays missing. Do not compare watts across unlabeled/mixed sources or infer CP from a descriptor.
 - Jev interprets semantic effort and supplied intent. Plan is prescribed context, never evidence of execution. Choice confidence is model uncertainty, not calibrated accuracy. Low-confidence, closely split, unknown or measurement-gap results need deeper coaching review; do not blindly save the winner.
 - Respect judgments.needsReview: weak/unknown/split verdicts require main-coach review, not blind persistence. Ambiguous structure gets a bounded Jev Choice; counts remain code-owned.
 - Read `analysisBrief` before deeper investigation. It supplies compact evidence,

@@ -1,6 +1,6 @@
 {
   "name": "alpharunner",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "private": true,
   "description": "AlphaRunner MVP - dashboard and control center for tracking runs",
   "type": "module",
