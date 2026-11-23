@@ -7,7 +7,7 @@ Use this reference whenever Stryd/Connect IQ telemetry is present, John asks abo
 Never treat all fields named "power" as interchangeable.
 
 1. Use the existing `coach analyze-run` evidence for the exact activity/date. For a genuinely missing descriptor/coverage question, follow [current retrieval configuration](../../alpharunner-garmin-run-import/references/cli-and-db-query-pitfalls.md); every fresh Garmin invocation must receive the protected env-file explicitly. Do not create a scratch enrichment script or bypass task persistence.
-2. Inventory `metricDescriptors` and map every sample through `metricsIndex`; array ordering can change on every response.
+2. Inventory `metricDescriptors` and map every sample through that response's `metricsIndex`; array ordering can change. The Connect IQ app ID and `developerFieldNumber` identify a developer field, not its position in the `metrics` array. Never assume a fixed index or key suffix. Personal API details can expose identity without human-readable names or units.
 3. Identify the Connect IQ app/provider and each developer field. For Stryd Zones app UUID `18fb2cf0-1a4b-430d-ad66-988c847421f4`, verified Garmin activity `24048385825` establishes that `developerFieldNumber: 0` was Stryd watts and field 3 was not watts. This is a validation example, not permission to hardcode blindly: remap and sanity-check every fresh payload.
 4. Validate the candidate stream before use:
    - plausible running-watt range and continuity;
@@ -21,6 +21,12 @@ Never treat all fields named "power" as interchangeable.
 6. State the source in the analysis and coaching note. Never combine Garmin watts and Stryd watts into one average, trend, zone distribution, or record.
 
 If Stryd power is absent, corrupt, or cannot be identified confidently, use Garmin power but name it. If neither stream is trustworthy, say power is unavailable. Missing data is not an invitation to perform necromancy.
+
+### Resolve material field metadata from original FIT
+
+Use the supported read-only [details and FIT retrieval](garmin-single-run-analysis.md#material-supplemental-telemetry) if field identity or units are material and missing. Join FIT `developer_data_id` and `field_description` by `developer_data_index`, then match the app ID and `field_definition_number` to the activity's developer descriptor. Read `field_name` and `units` from the matching description. If the match is ambiguous, leave it unresolved; a field number alone is not enough.
+
+When the matched FIT description explicitly says `Power / Watts`, state that FIT labels the stream in watts. Mention null API units only if relevant: that's an API metadata gap, not a faulty stream or unknown provider when provenance is independently validated. The usual stream checks and independent CP calibration still apply.
 
 ### Garmin fallback when Stryd is missing
 
@@ -63,7 +69,7 @@ Do not stop after failing to find CP inside an activity's Connect IQ metric desc
 2. Check recent source-labeled history for the last verified Stryd CP and its effective date. A bare historical watt value or unlabeled `avg_power_w` is not CP evidence.
 3. Use independently supplied dated running-zone configuration as corroboration when available; Personal API cannot retrieve live zone settings. Garmin-native floors alone do not become Stryd CP. If supplied floors reproduce Stryd's official 65/80/90/100/115% boundaries around the previously verified CP and John explicitly confirms his Stryd CP has not changed, record provenance as **user-confirmed unchanged Stryd CP, corroborated by supplied synchronized running-zone floors**, with their date. Do not call unsupported configuration commands or revive another transport.
 4. Verify the boundary arithmetic with a calculation tool. Do not infer the CP from one workout, reverse-engineer it from noisy rounded floors without prior provenance, or silently relabel Garmin FTP as Stryd CP.
-5. Only after these checks fail should the report say `CP unavailable`.
+5. If original FIT is inspected, also check its developer `session` fields. Report any recorded CP with units as a session setting, not as independent evidence of a dated physiological test or of current calibration. If no trustworthy calibration is established, say so explicitly rather than claiming the session didn't record CP. Only after the applicable checks fail and no setting is found should the report say `CP unavailable` without qualification.
 
 When John says “check CP again” or “nothing changed from usual Stryd runs,” rerun this evidence ladder and state any correction plainly. Read-only analysis does not authorize rewriting a stored note: use an explicitly authorized supported repair workflow, or report the persistence limitation. Never silently bypass the adapter with SQL.
 
@@ -194,7 +200,7 @@ Stryd's [Treadmill & Stryd Common Questions](https://help.stryd.com/en/articles/
 Whenever Stryd power drives the verdict, include:
 
 - power source: `Stryd/Connect IQ`;
-- CP value and provenance, or `CP unavailable`;
+- verified CP and provenance, or the recorded session setting with calibration status kept separate, or `CP unavailable` if neither was found;
 - intended workout type;
 - work-segment or steady-state power and `%CP` when calibrated;
 - repetition-level analysis for intervals/sprints;

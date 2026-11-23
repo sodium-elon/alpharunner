@@ -29,6 +29,25 @@ Use this when the user asks to analyze one completed Garmin run rather than buil
    - Convert Garmin labels like lactate threshold / tempo / aerobic into plain coaching language.
    - Say what the next day should look like based on the real stress of the run.
 
+## Material supplemental telemetry
+
+1. Reuse saved analysis/details first. If a Connect IQ chart or an explicit temperature, humidity, or provenance question requires a field the projection omits, confirm the exact Garmin activity and inspect its details. Sportscoach uses the Garmin CLI with the Personal API, not Garmin MCP. An unsupported Personal API weather endpoint limits external weather lookup, not recorded FIT telemetry.
+2. For a bounded read-only probe, use the pinned executable and explicit protected arguments before the subcommand. Save the details JSON privately and inspect `metricDescriptors`. Download original FIT only if material names, units, or samples still need resolution. Use a fresh private directory for the activity; never print credential contents.
+
+   ```bash
+   garmin=/home/john/projects/garmin-cli.workspace/garmin-cli/.venv/bin/garmin-cli
+   activity=ACTIVITY_ID  # substitute the verified ID
+   scratch=$(mktemp -d) || exit 1
+   "$garmin" --env-file /home/john/projects/alpharunner.workspace/env-profiles/local.env \
+     --tokenstore /home/john/.garmin-cli/tokens activities details "$activity" > "$scratch/details.json"
+   # Only if the saved details leave a material gap:
+   "$garmin" --env-file /home/john/projects/alpharunner.workspace/env-profiles/local.env \
+     --tokenstore /home/john/.garmin-cli/tokens activities download-fit "$activity" --output-dir "$scratch"
+   ```
+
+3. Use `fitdecode` via the existing Garmin CLI `.venv/bin/python` (next to the pinned executable). Read the actual downloaded FIT with `FitReader` and inspect `FitDataMessage` records: `developer_data_id`, `field_description`, `record`, and `session`. Follow the [Stryd field matching rules](stryd-power-coaching.md#resolve-material-field-metadata-from-original-fit). Use bounded calculations on the saved evidence, not a replacement importer, dependency install, semantic analysis rerun, stored measurement change, or reimport. If parsing is unavailable, report the gap rather than installing anything.
+4. Compare paired, time-aligned live Stryd Humidity and Temperature windows and check the final samples. Session Baseline Humidity and Baseline Temperature are configuration/baseline fields, never substitutes for the live series. Cooling can raise relative humidity without added moisture; that's a plausible explanation, not proof that absolute humidity stayed constant. Pod-local measurements are not weather-station readings: sweat, local exposure, sensor response, and route conditions may contribute. Don't assert a route/weather cause or attribute HR drift to humidity alone without independent evidence.
+
 ## Good output shape
 
 - One-line verdict
